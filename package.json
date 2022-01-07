@@ -1,0 +1,9 @@
+{
+	"name": "threplay-node",
+	"version": "0.0.0",
+	"description": "Node.js Addons Example #2",
+	"dependencies": {
+		"node-addon-api": "^1.0.0"
+	},
+	"gypfile": true
+}
