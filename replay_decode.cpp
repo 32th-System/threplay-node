@@ -1,4 +1,15 @@
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "zuntypes.h"
+
+unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length) {
+	unsigned int i;
+	for(i = 0; i < length; i++) {
+		buf[i] -= key;
+		key += 7;
+	}
+	return i;
+}
 
 unsigned int get_bit(unsigned char* buffer, unsigned int &pointer, unsigned char &filter, unsigned char length) {
 	unsigned char i;
@@ -19,6 +30,10 @@ unsigned int get_bit(unsigned char* buffer, unsigned int &pointer, unsigned char
 	return result;
 }
 
+
+// buffer: input buffer
+// decode: output buffer
+// length: input buffer size
 unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length) {
 	unsigned int pointer = 0, dest = 0, index, bits, i;
 	unsigned char filter = 0x80;
