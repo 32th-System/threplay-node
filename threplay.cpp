@@ -44,8 +44,8 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("stages", stages);	
 }
 
-Napi::Buffer<uint8_t> get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th07");
+void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th17");
 	
 	th17_replay_header_t* rep_raw = (th17_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
@@ -58,7 +58,43 @@ Napi::Buffer<uint8_t> get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi
 	
 	th17_replay_t* rep = (th17_replay_t*)rep_dec;
 	
-	return Napi::Buffer<uint8_t>::New(env, rep_dec, rep_raw->size);
+	if(rep->spell_practice_id != -1) {
+		out.Set("spell_practice_id", rep->spell_practice_id);
+		return;
+	}
+	
+	out.Set("name", rep->name);
+	out.Set("date", rep->timestamp);
+	out.Set("difficulty", rep->difficulty);
+	out.Set("score", rep->score * 10);
+
+	Napi::Array stages = Napi::Array::New(env);
+	size_t stage_off = sizeof(th17_replay_t);
+	for(int i = 0; i < rep->stage_count; i++) {
+		Napi::Object stage_ = Napi::Object::New(env);
+		th17_replay_stage_t* stage = (th17_replay_stage_t*)((size_t)rep + stage_off);
+				
+		stage_.Set("stage", stage->stagedata.stage_num);
+		stage_.Set("score", stage->stagedata.score);
+		stage_.Set("graze", stage->stagedata.graze);
+		stage_.Set("misscount", stage->stagedata.miss_count);
+		stage_.Set("piv", stage->stagedata.piv);
+		stage_.Set("power", stage->stagedata.power);
+		stage_.Set("lifes", stage->stagedata.lifes);
+		stage_.Set("life_pieces", stage->stagedata.life_pieces);
+		stage_.Set("bombs", stage->stagedata.bombs);
+		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
+		
+		Napi::Array tokens = Napi::Array::New(env);
+		for(int j = 0; j < 5; j++) {
+			tokens.Set(j, stage->stagedata.tokens[j]);
+		}
+		stage_.Set("tokens", tokens);
+		
+		stages.Set(i, stage_);
+		stage_off += stage->end_off + sizeof(th17_replay_stage_t);
+	}
+	out.Set("stages", stages);
 }
 
 Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
@@ -81,7 +117,7 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 		break;
 		
 	case 0x72373174: // "t17r"
-		return get_th17(ret, buf, len, env);
+		get_th17(ret, buf, len, env);
 		break;
 	
 	default:
