@@ -16,7 +16,7 @@ struct th_timer_t {
 struct th06_replay_header_t {
     char magic[4];
     uint16_t version;
-    uint8_t player;
+    uint8_t shot;
     uint8_t rank;
     uint32_t checksum;
     uint16_t unknown2;
@@ -105,12 +105,12 @@ struct th17_stage_global_t {
 };
 
 struct th17_replay_t {
-    char name[8];
-    char unk0[8];
+    char name[16];
     int timestamp;
     char unk3[4];
     int score;
-    char unk1[104];
+    char unk1[100];
+    float slowdown;
     int stage_count;
     int chara;
     int goast;

@@ -25,6 +25,20 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("score", rep->score);
 	out.Set("slowdown", rep->slowdown);
 	
+	const char* shots[] = {
+		"ReimuA",
+		"ReimuB",
+		"MarisaA",
+		"MarisaB"
+	};
+	
+	if(rep_raw->shot < 4) {
+		out.Set("shot", shots[rep_raw->shot]);
+	} else {
+		// If typeof(rep.shot) === "Number" the shottype in the replay data is invalid
+		out.Set("shot", rep_raw->shot);	
+	}
+	
 	Napi::Array stages = Napi::Array::New(env);
 	
 	for(int i = 0; i < 6; i++) {
@@ -67,6 +81,24 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
 	out.Set("score", rep->score * 10);
+	out.Set("slowdown", rep->slowdown);
+	
+	const char* charas[] = {
+		"Reimu",
+		"Marisa",
+		"Youmu"
+	};
+	const char* goasts[] = {
+		"Wolf",
+		"Otter",
+		"Eagle"
+	};
+	if(rep->chara < 3 && rep->goast < 3) {
+		out.Set("shot", std::string(charas[rep->chara]) + goasts[rep->goast]);
+	} else {
+		out.Set("chara", rep->chara);
+		out.Set("goast", rep->goast);
+	}
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th17_replay_t);
