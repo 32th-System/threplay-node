@@ -130,6 +130,82 @@ struct th17_replay_stage_t {
     int spellcard_real_times[21];
 };
 
+struct th18_stage_global_t {
+  int stage_num;
+  int _stage_num;
+  int field_8;
+  int stage_time[3];
+  int chara;
+  int subshot;
+  int score;
+  int difficulty;
+  int continues;
+  int field_2C;
+  int graze;
+  int field_34;
+  int spell_practice_id;
+  int miss_count;
+  int field_40;
+  int money_collected;
+  int piv;
+  int piv_min;
+  int piv_max;
+  char unk1[8];
+  int power;
+  int power_max;
+  int power_levelup;
+  int field_60;
+  int lifes;
+  int life_pieces;
+  int field_6C;
+  int field_70;
+  int bombs;
+  int bomb_pieces;
+  int bomb_restock_on_death;
+  char unk0[72];
+  th_timer_t field_C4;
+  th_timer_t field_D8;
+  char unk2[4];
+};
+
+/* 111 */
+struct th18_replay_stage_t {
+  uint16_t stage;
+  uint16_t rng;
+  int framecount;
+  int end_off; // Relative to the start of this structure!!!
+  int pos_subpixel[2];
+  int player_is_focused;
+  int spellcard_real_times[20];
+  th18_stage_global_t stagedata;
+  int cards[256];
+  int cards_param[256];
+  int card_active;
+  th18_stage_global_t stagedata_end;
+  int cards_end[256];
+  int cards_param_end[256];
+  int card_active_end;
+  int player_is_focused_end;
+};
+
+struct th18_replay_t
+{
+  char name[16];
+  int timestamp;
+  int field_14;
+  int score;
+  char unk0[136];
+  float slowdown;
+  int stage_count;
+  int chara;
+  int subshot_unused;
+  int difficulty;
+  int field_B8;
+  int field_BC;
+  int spell_practice_id;
+  int field_C4;
+};
+
 struct th_replay_userdata_header_t {
 	uint32_t magic; // "USER"
 	uint32_t length;

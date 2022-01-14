@@ -129,6 +129,78 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("stages", stages);
 }
 
+void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th18");
+	
+	th17_replay_header_t* rep_raw = (th17_replay_header_t*)buf;
+	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th17_replay_header_t)), rep_raw->comp_size);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
+	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
+	free(comp_buf);
+	
+	th18_replay_t* rep = (th18_replay_t*)rep_dec;
+	
+	if(rep->spell_practice_id != -1) {
+		out.Set("spell_practice_id", rep->spell_practice_id);
+		return;
+	}
+	
+	out.Set("name", rep->name);
+	out.Set("date", rep->timestamp);
+	out.Set("difficulty", rep->difficulty);
+	out.Set("score", rep->score * 10);
+	out.Set("slowdown", rep->slowdown);
+	
+	const char* charas[] = {
+		"Reimu",
+		"Marisa",
+		"Sakuya",
+		"Sanae"
+	};
+	
+	if(rep->chara > 4) {
+		out.Set("chara", rep->chara);
+	} else {
+		out.Set("chara", charas[rep->chara]);	
+	}
+	
+	Napi::Array stages = Napi::Array::New(env);
+	size_t stage_off = sizeof(th18_replay_t);
+	for(int i = 0; i < rep->stage_count; i++) {
+		
+		Napi::Object stage_ = Napi::Object::New(env);
+		th18_replay_stage_t* stage = (th18_replay_stage_t*)((size_t)rep + stage_off);
+				
+		stage_.Set("stage", stage->stagedata.stage_num);
+		stage_.Set("score", stage->stagedata.score);
+		stage_.Set("graze", stage->stagedata.graze);
+		stage_.Set("misscount", stage->stagedata.miss_count);
+		stage_.Set("piv", stage->stagedata.piv);
+		stage_.Set("power", stage->stagedata.power);
+		stage_.Set("lifes", stage->stagedata.lifes);
+		stage_.Set("life_pieces", stage->stagedata.life_pieces);
+		stage_.Set("bombs", stage->stagedata.bombs);
+		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
+		
+		Napi::Array cards = Napi::Array::New(env);
+		for(int i = 0; i < 256; i++) {
+			if(stage->cards[i] == -1) {
+				break;
+			}
+			cards.Set(i, stage->cards[i]);
+		}
+		stage_.Set("cards", cards);
+		stage_.Set("card_active", stage->card_active);
+		
+		stages.Set(i, stage_);
+		stage_off += stage->end_off + sizeof(th18_replay_stage_t);
+	}
+	out.Set("stages", stages);
+}
+
 Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	Napi::Env env = info.Env();
 	Napi::Object ret = Napi::Object::New(env);
@@ -150,6 +222,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 		
 	case 0x72373174: // "t17r"
 		get_th17(ret, buf, len, env);
+		break;
+	case 0x72383174: // "t18r"
+		get_th18(ret, buf, len, env);
 		break;
 	
 	default:
