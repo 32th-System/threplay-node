@@ -91,6 +91,24 @@ struct th11_replay_stage_t {
 
 #define th12_replay_header_t th10_replay_header_t;
 
+struct th12_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; // + 0xa0
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;
+    uint16_t lives;
+    uint16_t life_pieces;   //  if > 0, subtract 1
+    uint16_t bombs;
+    uint16_t bomb_pieces;
+    uint32_t ufo_1;
+    uint32_t ufo_2;
+    uint32_t ufo_3;
+    char ignore2[0x18];
+    uint32_t graze;
+};
+
 
 struct th17_replay_header_t {
 	uint32_t magic;
