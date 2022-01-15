@@ -57,10 +57,11 @@ struct th10_replay_header_t {
 };
 
 //  first stage offset is at 0x64 of the decoded data
+//  number of stage sections is at 0x4c
 
 struct th10_replay_stage_t {
     uint32_t stage;
-    uint32_t ignore;
+    uint32_t ignore;    //  either seed or header length
     uint32_t next_stage_offset; // add to current stage offset, + current stage header length which is 0x1c4
     uint32_t score;
     uint32_t power;
@@ -69,6 +70,26 @@ struct th10_replay_stage_t {
     uint32_t lives;
 };
 
+//  these are identical
+ 
+    //  stage offset 0x70, stage count 0x58
+#define th11_replay_header_t th10_replay_header_t;
+
+struct th11_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; // + 0x90
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;
+    uint16_t lives;
+    uint16_t life_pieces;
+    char ignore2[0x18];
+    uint32_t graze;
+};
+
+
+#define th12_replay_header_t th10_replay_header_t;
 
 
 struct th17_replay_header_t {
