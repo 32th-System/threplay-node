@@ -46,6 +46,7 @@ struct th06_replay_stage_t {
     uint8_t rank;	
 };
 
+<<<<<<< HEAD
 struct th10_replay_header_t {
     uint32_t magic;
     uint32_t version;   //  i assume, please doublecheck
@@ -125,8 +126,7 @@ struct th128_replay_stage_t {
     //  ((int)System.BitConverter.ToSingle(decodedata, (int)stageoffset + 0x88))
 };
 
-
-struct th17_replay_header_t {
+struct th16_replay_header_t {
 	uint32_t magic;
 	uint32_t version;
 	char unused[4];
@@ -134,6 +134,92 @@ struct th17_replay_header_t {
 	char unused1[12];
 	uint32_t comp_size;
 	uint32_t size;
+};
+
+struct th16_stage_global_t {
+    int stage_num;
+    int _stage_num;
+    int chapter;
+    int stage_time;
+    int __time_in_chapter_possibly_broken;
+    int chara;
+    int subshot_unused;
+    int subseason;
+    int score;
+    int difficulty;
+    int continues;
+    int rank_unused;
+    int graze;
+    int __graze_in_chapter_possibly_broken;
+    int spell_practice_id;
+    int miss_count;
+    int point_items_collected;
+    int field_44;
+    int piv;
+    int piv_min;
+    int piv_max;
+    int power;
+    int power_max;
+    int power_levelup;
+    int field_60;
+    int lives;
+    int life_pieces;
+    int next_score_extend_idx;
+    int bombs;
+    int bomb_pieces;
+    int season_power;
+    int season_power_max;
+    int field_80;
+    int field_84;
+    int field_88;
+    int field_8C;
+    int field_90;
+    int field_94;
+    int field_98;
+    int field_9C;
+    int field_A0;
+    int field_A4;
+    int season_power_required[6];
+    int _season_power_max;
+    int field_C4;
+    int field_C8;
+    int field_CC;
+    int field_D0;
+    int field_D4;
+    int field_D8;
+    int field_DC;
+    float last_item_collected_pos[3];
+    int th14_item_spawn_count;
+    char field_F0[308];
+};
+
+struct th16_replay_stage_t {
+    uint16_t stage;
+    uint16_t rng_state;
+    int frame_count;
+    int end_off;
+    int pos_subpixel[2];
+    th16_stage_global_t stagedata;
+    int field_238;
+    int field_23C;
+    int spellcard_real_times[21];
+};
+
+struct th16_replay_t {
+    char name[12];
+    int timestamp;
+    int field_10;
+    int score;
+    int unk0[25];
+    float slowdown;
+    int stage_count;
+    int chara;
+    int subshot_unused;
+    int difficulty;
+    int cleared;
+    int field_94;
+    int spell_practice_id;
+    int subseason;
 };
 
 struct th17_stage_global_t {
@@ -160,7 +246,7 @@ struct th17_stage_global_t {
     int power_max;
     int power_levelup;
     int field_60;
-    int lifes;
+    int lives;
     int life_pieces;
     int field_6C;
     int bombs;
@@ -195,7 +281,8 @@ struct th17_replay_t {
     int chara;
     int goast;
     int difficulty;
-    char unk2[8];
+    int cleared;
+    char unk2[4];
     int spell_practice_id;
 };
 
@@ -235,7 +322,7 @@ struct th18_stage_global_t {
   int power_max;
   int power_levelup;
   int field_60;
-  int lifes;
+  int lives;
   int life_pieces;
   int field_6C;
   int field_70;
@@ -280,7 +367,7 @@ struct th18_replay_t
   int chara;
   int subshot_unused;
   int difficulty;
-  int field_B8;
+  int cleared;
   int field_BC;
   int spell_practice_id;
   int field_C4;
