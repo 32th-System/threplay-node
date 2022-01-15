@@ -46,6 +46,86 @@ struct th06_replay_stage_t {
     uint8_t rank;	
 };
 
+struct th10_replay_header_t {
+    uint32_t magic;
+    uint32_t version;   //  i assume, please doublecheck
+    uint32_t user_offset;
+    char ignore2[16];    //  document later
+    uint32_t filelength;
+    uint32_t decryptedlength;
+    //  compressed data begins at offset 36
+};
+
+//  first stage offset is at 0x64 of the decoded data
+//  number of stage sections is at 0x4c
+
+struct th10_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; // add to current stage offset, + current stage header length which is 0x1c4
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;   //  faith
+    uint32_t ignore2;
+    uint32_t lives;
+};
+
+//  these are identical
+ 
+    //  stage offset 0x70, stage count 0x58
+#define th11_replay_header_t th10_replay_header_t
+
+struct th11_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; // + 0x90
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;
+    uint16_t lives;
+    uint16_t life_pieces;
+    char ignore2[0x18];
+    uint32_t graze;
+};
+
+
+#define th12_replay_header_t th10_replay_header_t
+
+struct th12_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; // + 0xa0
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;
+    uint16_t lives;
+    uint16_t life_pieces;   //  if > 0, subtract 1
+    uint16_t bombs;
+    uint16_t bomb_pieces;
+    uint32_t ufo_1;
+    uint32_t ufo_2;
+    uint32_t ufo_3;
+    char ignore2[0x18];
+    uint32_t graze;
+};
+
+#define th128_replay_header_t th10_replay_header_t
+
+struct th128_replay_stage_t {
+    uint32_t stage; //  commented out in threplay for unknown reason
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; //  + 0x90
+    uint32_t score;
+    uint32_t power;
+    char ignore2[0x6c]; //  wtf is this
+    uint32_t lives; //  as a %
+    uint32_t bombs; //  as a %
+    //  freeze area is here, but idk wtf my code is
+    //  here's the C#
+    //  ((int)System.BitConverter.ToSingle(decodedata, (int)stageoffset + 0x88))
+};
+
+
 struct th17_replay_header_t {
 	uint32_t magic;
 	uint32_t version;
