@@ -73,7 +73,7 @@ struct th10_replay_stage_t {
 //  these are identical
  
     //  stage offset 0x70, stage count 0x58
-#define th11_replay_header_t th10_replay_header_t;
+#define th11_replay_header_t th10_replay_header_t
 
 struct th11_replay_stage_t {
     uint32_t stage;
@@ -89,7 +89,7 @@ struct th11_replay_stage_t {
 };
 
 
-#define th12_replay_header_t th10_replay_header_t;
+#define th12_replay_header_t th10_replay_header_t
 
 struct th12_replay_stage_t {
     uint32_t stage;
@@ -107,6 +107,22 @@ struct th12_replay_stage_t {
     uint32_t ufo_3;
     char ignore2[0x18];
     uint32_t graze;
+};
+
+#define th128_replay_header_t th10_replay_header_t
+
+struct th128_replay_stage_t {
+    uint32_t stage; //  commented out in threplay for unknown reason
+    uint32_t ignore;    //  either seed or header length
+    uint32_t next_stage_offset; //  + 0x90
+    uint32_t score;
+    uint32_t power;
+    char ignore2[0x6c]; //  wtf is this
+    uint32_t lives; //  as a %
+    uint32_t bombs; //  as a %
+    //  freeze area is here, but idk wtf my code is
+    //  here's the C#
+    //  ((int)System.BitConverter.ToSingle(decodedata, (int)stageoffset + 0x88))
 };
 
 
