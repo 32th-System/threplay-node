@@ -46,6 +46,31 @@ struct th06_replay_stage_t {
     uint8_t rank;	
 };
 
+struct th10_replay_header_t {
+    uint32_t magic;
+    uint32_t version;   //  i assume, please doublecheck
+    uint32_t user_offset;
+    char ignore2[16];    //  document later
+    uint32_t filelength;
+    uint32_t decryptedlength;
+    //  compressed data begins at offset 36
+};
+
+//  first stage offset is at 0x64 of the decoded data
+
+struct th10_replay_stage_t {
+    uint32_t stage;
+    uint32_t ignore;
+    uint32_t next_stage_offset; // add to current stage offset, + current stage header length which is 0x1c4
+    uint32_t score;
+    uint32_t power;
+    uint32_t piv;   //  faith
+    uint32_t ignore2;
+    uint32_t lives;
+};
+
+
+
 struct th17_replay_header_t {
 	uint32_t magic;
 	uint32_t version;
