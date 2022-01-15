@@ -46,7 +46,6 @@ struct th06_replay_stage_t {
     uint8_t rank;	
 };
 
-<<<<<<< HEAD
 struct th10_replay_header_t {
     uint32_t magic;
     uint32_t version;   //  i assume, please doublecheck
