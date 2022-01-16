@@ -125,7 +125,7 @@ struct th128_replay_stage_t {
     //  ((int)System.BitConverter.ToSingle(decodedata, (int)stageoffset + 0x88))
 };
 
-struct th15_replay_header_t {
+struct th14_replay_header_t {
 	uint32_t magic;
 	uint32_t version;
 	char unused[4];
@@ -133,6 +133,61 @@ struct th15_replay_header_t {
 	char unused1[12];
 	uint32_t comp_size;
 	uint32_t size;
+};
+
+struct th14_stage_global_t {
+    uint32_t stage_num;
+    uint32_t _stage_num;
+    uint32_t score;
+    uint32_t difficulty;
+    uint32_t continues;
+    uint32_t field_14;
+    uint32_t graze;
+    uint32_t spell_practice_id;
+    uint32_t field_20;
+    uint32_t piv;
+    uint32_t piv_min;
+    uint32_t piv_max;
+    uint32_t power;
+    uint32_t power_max;
+    uint32_t power_levelup;
+    uint32_t lives;
+    uint32_t life_pieces;
+    uint32_t field_44;
+    uint32_t bombs;
+    uint32_t bomb_pieces;
+    uint32_t score_from_poc;
+    uint32_t field_54;
+    uint32_t field_58;
+    uint32_t field_5C;
+    float last_item_collected_pos[3];
+    uint32_t poc_count;
+};
+
+struct th14_replay_stage_t {
+    uint16_t stage_num;
+    uint16_t rng;
+    uint32_t frame_count;
+    uint32_t end_off;
+    uint32_t pos_subpixel[2];
+    th14_stage_global_t stagedata;
+    uint32_t player_is_focused;
+    uint32_t spellcard_real_times[21];
+};
+
+struct th14_replay_t {
+    char name[12];
+    uint32_t timestamp;
+    uint32_t score;
+    uint8_t unk[96];
+    float slowdown;
+    uint32_t stage_count;
+    uint32_t chara;
+    uint32_t subshot;
+    uint32_t difficulty;
+    uint32_t cleared;
+    uint32_t field_8C;
+    uint32_t spell_practice_id;
 };
 
 struct th15_replay_t {

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "zuntypes.h"
 
+#include <string>
+
 unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length);
 void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned char base, unsigned char add);
 unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length);
@@ -58,13 +60,78 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("stages", stages);	
 }
 
+void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th14");
+	
+	th14_replay_header_t* rep_raw = (th14_replay_header_t*)buf;
+	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th14_replay_header_t)), rep_raw->comp_size);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
+	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
+	free(comp_buf);
+	
+	th14_replay_t* rep = (th14_replay_t*)rep_dec;
+	
+	out.Set("name", rep->name);
+	out.Set("date", rep->timestamp);
+	out.Set("difficulty", rep->difficulty);
+	out.Set("score", (double)rep->score * 10);
+	out.Set("slowdown", rep->slowdown);
+	out.Set("cleared", rep->cleared);
+	
+	const char* charas[] = {
+		"Reimu",
+		"Marisa",
+		"Sakuya"
+	};
+	const char* shots = "AB";
+	
+	if(rep->chara < 3 && rep->subshot < 2) {
+		#define ch rep->chara
+		size_t charlen = strlen(charas[ch]);
+		char truechara[16] = {};
+		memcpy(truechara, charas[ch], charlen);
+		truechara[charlen] = shots[rep->subshot];
+		out.Set("shot", truechara);
+		#undef ch
+	} else {
+		out.Set("chara", rep->chara);
+		out.Set("subshot", rep->subshot);
+	}
+				
+	Napi::Array stages = Napi::Array::New(env);
+	size_t stage_off = sizeof(th14_replay_t);
+	for(uint32_t i = 0; i < rep->stage_count; i++) {
+		Napi::Object stage_ = Napi::Object::New(env);
+		th14_replay_stage_t* stage = (th14_replay_stage_t*)((size_t)rep + stage_off);
+				
+		stage_.Set("stage", stage->stage_num);
+		stage_.Set("score", (double)stage->stagedata.score * 10);
+		stage_.Set("graze", stage->stagedata.graze);
+		//stage_.Set("misscount", stage->stagedata.miss_count);
+		stage_.Set("piv", stage->stagedata.piv);
+		stage_.Set("power", stage->stagedata.power);
+		stage_.Set("lives", stage->stagedata.lives);
+		stage_.Set("life_pieces", stage->stagedata.life_pieces);
+		stage_.Set("bombs", stage->stagedata.bombs);
+		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
+		stage_.Set("poc_count", stage->stagedata.poc_count);
+				
+		stages.Set(i, stage_);
+		stage_off += stage->end_off + sizeof(th14_replay_stage_t);
+	}
+	out.Set("stages", stages);
+}
+
 void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th15");
 	
-	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
+	th14_replay_header_t* rep_raw = (th14_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th14_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -78,7 +145,20 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("score", (double)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
-
+	
+	const char* charas[] = {
+		"Reimu",
+		"Marisa",
+		"Sanae",
+		"Reisen"
+	};
+		
+	if(rep->chara < 4) {
+		out.Set("chara", charas[rep->chara]);
+	} else {
+		out.Set("chara", rep->chara);
+	}
+				
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th15_replay_t);
 	for(uint32_t i = 0; i < rep->stage_count; i++) {
@@ -105,10 +185,10 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th16");
 	
-	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
+	th14_replay_header_t* rep_raw = (th14_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th14_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -127,6 +207,27 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("score", (double)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
+	
+	const char* charas[] = {
+		"Reimu",
+		"Cirno",
+		"Aya",
+		"Marisa"
+	};
+	const char* seasons[] = {
+		"Spring",
+		"Summer",
+		"Autumn",
+		"Winter",
+		"Extra"
+	};
+	
+	if(rep->chara < 4 && rep->subseason < 5) {
+		out.Set("shot", std::string(charas[rep->chara]) + seasons[rep->subseason]);
+	} else {
+		out.Set("chara", rep->chara);
+		out.Set("subseason", rep->subseason);
+	}
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th16_replay_t);
@@ -164,10 +265,10 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th17");
 	
-	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
+	th14_replay_header_t* rep_raw = (th14_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th14_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -236,10 +337,10 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th18");
 	
-	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
+	th14_replay_header_t* rep_raw = (th14_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th14_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -324,7 +425,10 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	case 0x50523654: // "T6RP"
 		get_th06(ret, buf, len, env);
 		break;
-	case 0x72353174: // "t16r"
+	case 0x72333174: // "t13r"
+		get_th14(ret, buf, len, env);
+		break;
+	case 0x72353174: // "t15r"
 		get_th15(ret, buf, len, env);
 		break;
 	case 0x72363174: // "t16r"
