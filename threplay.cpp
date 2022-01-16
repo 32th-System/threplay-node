@@ -58,13 +58,57 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("stages", stages);	
 }
 
+void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th15");
+	
+	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
+	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
+	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
+	free(comp_buf);
+	
+	th15_replay_t* rep = (th15_replay_t*)rep_dec;
+	
+	out.Set("name", rep->name);
+	out.Set("date", rep->timestamp);
+	out.Set("difficulty", rep->difficulty);
+	out.Set("score", (double)rep->score * 10);
+	out.Set("slowdown", rep->slowdown);
+	out.Set("cleared", rep->cleared);
+
+	Napi::Array stages = Napi::Array::New(env);
+	size_t stage_off = sizeof(th15_replay_t);
+	for(uint32_t i = 0; i < rep->stage_count; i++) {
+		Napi::Object stage_ = Napi::Object::New(env);
+		th15_replay_stage_t* stage = (th15_replay_stage_t*)((size_t)rep + stage_off);
+				
+		stage_.Set("stage", stage->stagedata.stage_num);
+		stage_.Set("score", (double)stage->stagedata.score * 10);
+		stage_.Set("graze", stage->stagedata.graze);
+		stage_.Set("misscount", stage->stagedata.miss_count);
+		stage_.Set("piv", stage->stagedata.piv);
+		stage_.Set("power", stage->stagedata.power);
+		stage_.Set("lives", stage->stagedata.lives);
+		stage_.Set("life_pieces", stage->stagedata.life_pieces);
+		stage_.Set("bombs", stage->stagedata.bombs);
+		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
+				
+		stages.Set(i, stage_);
+		stage_off += stage->end_off + sizeof(th15_replay_stage_t);
+	}
+	out.Set("stages", stages);
+}
+
 void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th16");
 	
-	th16_replay_header_t* rep_raw = (th16_replay_header_t*)buf;
+	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th16_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -86,7 +130,7 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th16_replay_t);
-	for(int i = 0; i < rep->stage_count; i++) {
+	for(uint32_t i = 0; i < rep->stage_count; i++) {
 		Napi::Object stage_ = Napi::Object::New(env);
 		th16_replay_stage_t* stage = (th16_replay_stage_t*)((size_t)rep + stage_off);
 				
@@ -106,7 +150,7 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		// to change between stages I wouldn't know
 		out.Set("season_power_max", stage->stagedata.season_power_max);
 		Napi::Array season_power_required = Napi::Array::New(env);
-		for(int i = 0; i < 6; i++) {
+		for(uint32_t i = 0; i < 6; i++) {
 			season_power_required.Set(i, stage->stagedata.season_power_required[i]);
 		}
 		out.Set("season_power_required", season_power_required);
@@ -120,10 +164,10 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th17");
 	
-	th16_replay_header_t* rep_raw = (th16_replay_header_t*)buf;
+	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th16_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -162,7 +206,7 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th17_replay_t);
-	for(int i = 0; i < rep->stage_count; i++) {
+	for(uint32_t i = 0; i < rep->stage_count; i++) {
 		Napi::Object stage_ = Napi::Object::New(env);
 		th17_replay_stage_t* stage = (th17_replay_stage_t*)((size_t)rep + stage_off);
 				
@@ -178,7 +222,7 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
 		
 		Napi::Array tokens = Napi::Array::New(env);
-		for(int j = 0; j < 5; j++) {
+		for(uint32_t j = 0; j < 5; j++) {
 			tokens.Set(j, stage->stagedata.tokens[j]);
 		}
 		stage_.Set("tokens", tokens);
@@ -192,10 +236,10 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th18");
 	
-	th16_replay_header_t* rep_raw = (th16_replay_header_t*)buf;
+	th15_replay_header_t* rep_raw = (th15_replay_header_t*)buf;
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	memcpy((void*)comp_buf, (void*)(buf + sizeof(th16_replay_header_t)), rep_raw->comp_size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th15_replay_header_t)), rep_raw->comp_size);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
 	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
 	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
@@ -230,7 +274,7 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th18_replay_t);
-	for(int i = 0; i < rep->stage_count; i++) {
+	for(uint32_t i = 0; i < rep->stage_count; i++) {
 		
 		Napi::Object stage_ = Napi::Object::New(env);
 		th18_replay_stage_t* stage = (th18_replay_stage_t*)((size_t)rep + stage_off);
@@ -279,6 +323,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	switch(magic) {	
 	case 0x50523654: // "T6RP"
 		get_th06(ret, buf, len, env);
+		break;
+	case 0x72353174: // "t16r"
+		get_th15(ret, buf, len, env);
 		break;
 	case 0x72363174: // "t16r"
 		get_th16(ret, buf, len, env);

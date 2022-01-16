@@ -125,7 +125,7 @@ struct th128_replay_stage_t {
     //  ((int)System.BitConverter.ToSingle(decodedata, (int)stageoffset + 0x88))
 };
 
-struct th16_replay_header_t {
+struct th15_replay_header_t {
 	uint32_t magic;
 	uint32_t version;
 	char unused[4];
@@ -133,6 +133,79 @@ struct th16_replay_header_t {
 	char unused1[12];
 	uint32_t comp_size;
 	uint32_t size;
+};
+
+struct th15_replay_t {
+    char name[12];
+    uint64_t timestamp;
+    uint32_t score;
+    char unk0[108];
+    float slowdown;
+    uint32_t stage_count;
+    uint32_t chara;
+    uint32_t subshot_unused;
+    uint32_t difficulty;
+    uint32_t cleared;
+    uint32_t field_9C;
+    uint32_t spell_practice_id;
+};
+
+struct th15_stage_global_t {
+    uint32_t stage_num;
+    uint32_t _stage_num;
+    uint32_t chapter;
+    uint32_t time_in_stage;
+    uint32_t time_in_chapter;
+    uint32_t chara;
+    uint32_t subshot_unused;
+    uint32_t score;
+    uint32_t difficulty;
+    uint32_t continues;
+    uint32_t rank;
+    uint32_t graze;
+    uint32_t graze_chapter;
+    int32_t spell_practice_id;
+    uint32_t field_38;
+    uint32_t miss_count;
+    uint32_t point_items_collected;
+    uint32_t piv;
+    uint32_t piv_min;
+    uint32_t piv_max;
+    uint32_t power;
+    uint32_t power_max;
+    uint32_t power_levelup;
+    uint32_t field_5C;
+    uint32_t lives;
+    uint32_t life_pieces;
+    uint32_t extends;
+    uint32_t bombs;
+    uint32_t bomb_pieces;
+    uint32_t field_74;
+    uint32_t field_78;
+    uint32_t field_7C;
+    uint32_t field_80;
+    float last_item_collected_pos[3];
+    uint32_t th14_item_spawn_count;
+    uint32_t enemies_in_chapter;
+    uint32_t enemies_killed_in_chapter;
+    char bgm_fn[256];
+    uint32_t field_19C;
+    uint32_t field_1A0;
+    uint32_t __pd_resets_total;
+    uint32_t __pd_resets_stage[8];
+    uint32_t __pd_resets_chapter;
+};
+
+struct th15_replay_stage_t
+{
+    uint16_t stage;
+    uint16_t rng;
+    int frame_count;
+    int end_off;
+    int pos_subpixel[2];
+    th15_stage_global_t stagedata;
+    int player_is_focused;
+    int spellcard_real_times[21];
 };
 
 struct th16_stage_global_t {
@@ -150,7 +223,7 @@ struct th16_stage_global_t {
     uint32_t rank_unused;
     uint32_t graze;
     uint32_t __graze_in_chapter_possibly_broken;
-    uint32_t spell_practice_id;
+    int32_t spell_practice_id;
     uint32_t miss_count;
     uint32_t point_items_collected;
     uint32_t field_44;
@@ -216,7 +289,7 @@ struct th16_replay_t {
     uint32_t difficulty;
     uint32_t cleared;
     uint32_t field_94;
-    uint32_t spell_practice_id;
+    int32_t spell_practice_id;
     uint32_t subseason;
 };
 
@@ -233,7 +306,7 @@ struct th17_stage_global_t {
     uint32_t rank_unused;
     uint32_t graze;
     uint32_t field_34;
-    uint32_t spell_practice_id;
+    int32_t spell_practice_id;
     uint32_t miss_count;
     uint32_t field_40;
     uint32_t point_items_collected;
@@ -280,7 +353,7 @@ struct th17_replay_t {
     uint32_t difficulty;
     uint32_t cleared;
     char unk2[4];
-    uint32_t spell_practice_id;
+    int32_t spell_practice_id;
 };
 
 struct th17_replay_stage_t {
@@ -307,7 +380,7 @@ struct th18_stage_global_t {
   uint32_t field_2C;
   uint32_t graze;
   uint32_t field_34;
-  uint32_t spell_practice_id;
+  int32_t spell_practice_id;
   uint32_t miss_count;
   uint32_t field_40;
   uint32_t money_collected;
@@ -342,11 +415,11 @@ struct th18_replay_stage_t {
   uint32_t player_is_focused;
   uint32_t spellcard_real_times[20];
   th18_stage_global_t stagedata;
-  uint32_t cards[256];
+  int32_t cards[256];
   uint32_t cards_param[256];
   uint32_t card_active;
   th18_stage_global_t stagedata_end;
-  uint32_t cards_end[256];
+  int32_t cards_end[256];
   uint32_t cards_param_end[256];
   uint32_t card_active_end;
   uint32_t player_is_focused_end;
@@ -365,7 +438,7 @@ struct th18_replay_t
   uint32_t difficulty;
   uint32_t cleared;
   uint32_t field_BC;
-  uint32_t spell_practice_id;
+  int32_t spell_practice_id;
   uint32_t field_C4;
 };
 
