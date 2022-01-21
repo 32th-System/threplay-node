@@ -58,6 +58,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		}
 	}
 	out.Set("stages", stages);	
+	free(rep_dec);
 }
 
 void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -117,6 +118,7 @@ void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th13_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -182,6 +184,7 @@ void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th14_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -239,6 +242,7 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th15_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -319,6 +323,7 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th16_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -391,6 +396,7 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th17_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -464,6 +470,7 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		stage_off += stage->end_off + sizeof(th18_replay_stage_t);
 	}
 	out.Set("stages", stages);
+	free(rep_dec);
 }
 
 Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
