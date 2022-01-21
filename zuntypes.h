@@ -241,6 +241,26 @@ struct th14_replay_t {
     uint32_t spell_practice_id;
 };
 
+struct th143_replay_t {
+    char name[20];
+    uint64_t timestamp;
+    uint32_t score;
+    uint32_t field_20[23];
+    float slowdown;
+    uint32_t field_80;
+    uint32_t field_84;
+    uint32_t day;
+    uint32_t scene;
+    uint32_t field_90;
+    uint32_t primary_item;
+    uint32_t secondary_item;
+    uint32_t field_9C;
+    uint32_t primary_item_uses;
+    uint32_t iframes;
+    uint16_t scene_num;
+    uint16_t rng;
+};
+
 struct th15_replay_t {
     char name[12];
     uint64_t timestamp;
