@@ -241,6 +241,8 @@ struct th14_replay_t {
     uint32_t spell_practice_id;
 };
 
+// This struct is not complete, and it doesn't need to be
+// because nobody ever gets the sizeof of it
 struct th143_replay_t {
     char name[20];
     uint64_t timestamp;
@@ -417,6 +419,19 @@ struct th16_replay_t {
     uint32_t field_94;
     int32_t spell_practice_id;
     uint32_t subseason;
+};
+
+// This struct is not complete, and it doesn't need to be
+// because nobody ever gets the sizeof of it
+struct th165_replay_t {
+    char name[20];
+    uint64_t timestamp;
+    uint32_t score;
+    uint32_t field_20[25];
+    float slowdown;
+    uint32_t field_88;
+    uint32_t day;
+    uint32_t scene;
 };
 
 struct th17_stage_global_t {

@@ -352,6 +352,30 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	free(rep_dec);
 }
 
+void get_th165(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th165");
+	
+	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x400, 0x5c, 0xe1);
+	th_decrypt(comp_buf, rep_raw->comp_size, 0x100, 0x7d, 0x3a);
+	th_unlzss(comp_buf, rep_dec, rep_raw->comp_size);
+	free(comp_buf);
+
+	th165_replay_t* rep = (th165_replay_t*)rep_dec;
+
+	out.Set("name", rep->name);
+	out.Set("date", rep->timestamp);
+	out.Set("score", rep->score);
+	out.Set("slowdown", rep->slowdown);
+	out.Set("day", rep->day);
+	out.Set("scene", rep->scene);
+
+	free(rep_dec);
+}
+
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th17");
 	
@@ -534,6 +558,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 		break;
 	case 0x72363174: // "t16r"
 		get_th16(ret, buf, len, env);
+		break;
+	case 0x36353174: // "t156". Really ZUN?
+		get_th165(ret, buf, len, env);
 		break;
 	case 0x72373174: // "t17r"
 		get_th17(ret, buf, len, env);
