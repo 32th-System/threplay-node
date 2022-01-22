@@ -48,7 +48,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	
 	Napi::Array stages = Napi::Array::New(env);
 	
-	for(int i = 0; i < 6; i++) {
+	for(int i = 0, h = 0; i < 6; i++) {
 		if(rep->stage_offsets[i]) {
 			Napi::Object stage_ = Napi::Object::New(env);
 
@@ -65,11 +65,88 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			stage_.Set("lives", stage->lives);
 			stage_.Set("bombs", stage->bombs);
 
-			stages.Set(i, stage_);
+			stages.Set(h, stage_);
+			h++;
 		}
 	}
 	out.Set("stages", stages);	
 	free(rep_dec);
+}
+
+void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th07");
+
+	th07_replay_header_t* rep_raw = (th07_replay_header_t*)malloc(len);
+	memcpy(rep_raw, buf, len);
+	th06_decrypt(
+		(uint8_t*)rep_raw + offsetof(th07_replay_header_t, field_10),
+		rep_raw->key,
+		len - offsetof(th07_replay_header_t, field_10)
+	);
+	
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	th_unlzss((uint8_t*)rep_raw + sizeof(th07_replay_header_t), rep_dec, rep_raw->comp_size);
+
+	th07_replay_t* rep = (th07_replay_t*)rep_dec;
+
+
+	out.Set("name", rep->name);
+	char date[11] = "2000-01-01";
+	memcpy(date+5, rep->date, 2);
+	memcpy(date+8, &rep->date[3], 2);
+	out.Set("date", date);
+	out.Set("score", (double)rep->score * 10);
+	out.Set("slowdown", rep->slowdown);
+	out.Set("difficulty", rep->difficulty);
+
+	Napi::Array stages = Napi::Array::New(env);
+	for(int i = 0, h = 0; i < 7; i++) {
+		if(rep_raw->stage_offsets[i]) {
+			Napi::Object stage_ = Napi::Object::New(env);
+
+			uint32_t stage_off = rep_raw->stage_offsets[i] - sizeof(th07_replay_header_t);
+			if(stage_off + sizeof(th07_replay_stage_t) > rep_raw->size) {
+				out.Set("invalid", "stage data out of bounds");
+				return;
+			}
+			th07_replay_stage_t* stage = (th07_replay_stage_t*)(rep_dec + stage_off);
+				
+			stage_.Set("stage", i + 1);
+			
+			// ZUN decided to store the stage end score in the score field for some reason despite storing the
+			// start score in every other game. I don't know how ZUN determines the stage start score like that
+			// in his game, but this is how I am doing it.
+			if(i == 0) {
+				stage_.Set("score", 0);
+			} else {
+				for(int j = 1; j <= i; j++) {
+					if(rep_raw->stage_offsets[i - j]) {
+						uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th07_replay_header_t);
+						// If this stage_off was out of bounds, it would've been caught earlier
+						th07_replay_stage_t* s_ = (th07_replay_stage_t*)(rep_dec + stage_off);
+						stage_.Set("score", (double)s_->score * 10);
+						break;
+					}
+				}
+			}
+			stage_.Set("point_items", stage->point_items);
+			stage_.Set("PIV", stage->piv);
+			stage_.Set("cherrymax", stage->cherrymax);
+			stage_.Set("cherry", stage->cherry);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("bombs", stage->bombs);
+
+			stages.Set(h, stage_);
+			h++;
+		}
+	}
+	out.Set("stages", stages);	
+	free(rep_dec);
+	free(rep_raw);
+
+	return;
 }
 
 void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -620,6 +697,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	switch(magic) {	
 	case 0x50523654: // "T6RP"
 		get_th06(ret, buf, len, env);
+		break;
+	case 0x50523754: // "T7RP"
+		get_th07(ret, buf, len, env);
 		break;
 	case 0x72333174: // "t13r"
 		_ver = buf[_th13_rep->userdata_offset + 16];
