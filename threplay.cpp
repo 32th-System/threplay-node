@@ -10,9 +10,14 @@ unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned 
 
 void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th06");
-	
 	th06_replay_header_t* rep_raw = (th06_replay_header_t*)buf;
+
 	size_t size = len - offsetof(th06_replay_header_t, crypted_data);
+	if(size < sizeof(th06_replay_t) + sizeof(th06_replay_stage_t) + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+	
 	uint8_t* rep_dec = (uint8_t*)malloc(size);
 	memcpy(rep_dec, rep_raw->crypted_data, size);
 	th06_decrypt(rep_dec, rep_raw->key, size);
@@ -46,7 +51,13 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	for(int i = 0; i < 6; i++) {
 		if(rep->stage_offsets[i]) {
 			Napi::Object stage_ = Napi::Object::New(env);
-			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + rep->stage_offsets[i] - offsetof(th06_replay_header_t, crypted_data));
+
+			uint32_t stage_off = rep->stage_offsets[i] - offsetof(th06_replay_header_t, crypted_data);
+			if(stage_off + sizeof(th06_replay_stage_t) < size) {
+				out.Set("invalid", "stage data out of bounds");
+				return;
+			}
+			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
 				
 			stage_.Set("stage", i + 1);
 			stage_.Set("score", stage->score);
@@ -63,8 +74,13 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th13");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th13_replay_t) + sizeof(th13_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -116,6 +132,11 @@ void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th13_replay_stage_t);
+
+		if(stage_off + sizeof(th13_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -123,8 +144,13 @@ void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th14");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th14_replay_t) + sizeof(th14_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -182,6 +208,11 @@ void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th14_replay_stage_t);
+
+		if(stage_off + sizeof(th14_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -189,8 +220,13 @@ void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th143(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th143");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th143_replay_t)) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -215,8 +251,13 @@ void get_th143(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th15");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+	
+	if(rep_raw->size < sizeof(th15_replay_t) + sizeof(th15_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -266,6 +307,11 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th15_replay_stage_t);
+
+		if(stage_off + sizeof(th15_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -273,8 +319,13 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th16");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+	
+	if(rep_raw->size < sizeof(th16_replay_t) + sizeof(th16_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+	
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -347,6 +398,11 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th16_replay_stage_t);
+
+		if(stage_off + sizeof(th16_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -354,8 +410,13 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th165(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th165");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th165_replay_t)) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -378,8 +439,13 @@ void get_th165(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th17");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th17_replay_t) + sizeof(th17_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+	
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -444,6 +510,10 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th17_replay_stage_t);
+		if(stage_off + sizeof(th17_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -451,8 +521,13 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th18");
-	
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
+
+	if(rep_raw->size < sizeof(th18_replay_t) + sizeof(th18_replay_stage_t) * 2 + 6) {
+		out.Set("invalid", "too small");
+		return;
+	}
+
 	uint8_t* comp_buf = (uint8_t*)malloc(rep_raw->comp_size);
 	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
 	memcpy((void*)comp_buf, (void*)(buf + sizeof(th13_replay_header_t)), rep_raw->comp_size);
@@ -491,7 +566,6 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th18_replay_t);
 	for(uint32_t i = 0; i < rep->stage_count; i++) {
-		
 		Napi::Object stage_ = Napi::Object::New(env);
 		th18_replay_stage_t* stage = (th18_replay_stage_t*)((size_t)rep + stage_off);
 				
@@ -518,6 +592,11 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		
 		stages.Set(i, stage_);
 		stage_off += stage->end_off + sizeof(th18_replay_stage_t);
+		if(stage_off + sizeof(th18_replay_stage_t) < rep_raw->size) {
+			out.Set("invalid", "stage data out of bounds");
+			return;
+		}
+
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
