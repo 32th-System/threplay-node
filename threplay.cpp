@@ -130,7 +130,7 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				}
 			}
 			stage_.Set("point_items", stage->point_items);
-			stage_.Set("PIV", stage->piv);
+			stage_.Set("piv", stage->piv);
 			stage_.Set("cherrymax", stage->cherrymax);
 			stage_.Set("cherry", stage->cherry);
 			stage_.Set("graze", stage->graze);
