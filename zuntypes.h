@@ -89,6 +89,44 @@ struct th07_replay_stage_t {
 
 };
 
+struct th08_replay_header_t {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t field_8;
+    uint32_t comp_size; // Also serves as offset for USER data
+    uint32_t field_10;
+    uint8_t unk0;
+    uint8_t key; // Only the first 8 bits get used#
+    uint16_t unk1;
+    uint32_t field_18;
+    uint32_t size;
+    uint32_t stage_offsets[9];
+    uint32_t field_44[9];
+};
+
+struct th08_replay_t {
+    char unknown[2];
+	uint8_t shot;
+	uint8_t difficulty;
+	char date[6];
+	char name[9];
+};
+
+struct th08_replay_stage_t {
+	uint32_t score;
+	uint32_t point_items;
+	uint32_t graze;
+	uint32_t time;
+	uint32_t unknown;
+	uint32_t piv;
+	int16_t human_youkai;
+    uint16_t unknown2;
+	uint8_t power;
+	uint8_t lives;
+	uint8_t bombs;
+	uint8_t unknown3;
+};
+
 struct th10_replay_header_t {
     uint32_t magic;
     uint32_t version;   //  i assume, please doublecheck

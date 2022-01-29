@@ -3,10 +3,12 @@
 #include "zuntypes.h"
 
 #include <string>
+#include <string_view>
+#include <unordered_map>
 
 unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length);
-void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned char base, unsigned char add);
-unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length);
+void th_decrypt(unsigned char * userdata_txt, int length, int block_size, unsigned char base, unsigned char add);
+unsigned int th_unlzss(unsigned char * userdata_txt, unsigned char * decode, unsigned int length);
 
 void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th06");
@@ -161,6 +163,193 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	free(rep_raw);
 
 	return;
+}
+
+std::unordered_map<std::string_view, const char*> th08_shots = {
+	{ "\x97\x64\x96\xB2\x81\x95\x97\x48\x81\x58\x8E\x71\x81\x40\x81\x40", "Border Team"}
+};
+
+void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
+	out.Set("game", "th08");
+
+	th08_replay_header_t* rep_raw = (th08_replay_header_t*)malloc(len);
+	memcpy(rep_raw, buf, len);
+
+	size_t userdata_len = len - rep_raw->comp_size;
+	if(userdata_len >= len) {
+		// Underflow occured, replay corrupt
+		out.Set("invalid", "comp_size larger than file");
+		return;
+	}
+	if(userdata_len <= sizeof(th_replay_userdata_header_t)) {
+		out.Set("invalid", "userdata section too small");
+		return;
+	}
+	th_replay_userdata_header_t* userdata = (th_replay_userdata_header_t*)((size_t)rep_raw + rep_raw->comp_size);
+	if(userdata->magic != 0x52455355) {
+		out.Set("invalid", "invalid magic for userdata section");
+		return;
+	}
+	char* userdata_txt = (char*)userdata + sizeof(th_replay_userdata_header_t);
+	size_t userdata_txtlen = userdata_len - sizeof(th_replay_userdata_header_t);
+	th06_decrypt(
+		(uint8_t*)rep_raw + offsetof(th08_replay_header_t, field_18),
+		rep_raw->key,
+		rep_raw->comp_size - offsetof(th08_replay_header_t, field_18)
+	);
+
+	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
+	th_unlzss((uint8_t*)rep_raw + sizeof(th08_replay_header_t), rep_dec, rep_raw->comp_size - sizeof(th08_replay_header_t));
+	th08_replay_t* rep = (th08_replay_t*)rep_dec;
+
+	size_t user_offset = 13;
+	size_t l = 0;
+
+	#define OR_ELSE else { out.Set("invalid", "userdata section too small"); return; }
+
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("name", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+	
+	user_offset += 13 + l;
+	l = 0;
+	
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("date", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+	
+	user_offset += 11 + l;
+	l = 0;
+	
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		//size_t l_ = sj2utf8(&userdata_txt[user_offset], l, _, 230);
+		userdata_txt[user_offset + l] = 0;
+		const char* __ = th08_shots[std::string_view(&userdata_txt[user_offset])];
+		if(!__) {
+			out.Set("shot", Napi::Buffer<char>::New(env, &userdata_txt[user_offset], l));
+		} else {
+			out.Set("shot", __);
+		}
+	} OR_ELSE
+	
+	user_offset += 10 + l;
+	l = 0;
+	
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("score", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+	
+	user_offset += 10 + l;
+	l = 0;
+	
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("difficulty", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+	
+	user_offset += 15 + l;
+	l = 0;
+	
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("cleared", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+
+	user_offset += 11 + l;
+	l = 0;
+
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("misses", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+
+	user_offset += 11 + l;
+	l = 0;
+
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("bombs", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+
+	user_offset += 13 + l;
+	l = 0;
+
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("slowdown", Napi::String::New(env, &userdata_txt[user_offset], l));
+	} OR_ELSE
+
+	user_offset += 10 + l;
+	l = 0;
+
+	//	it's labelled as lives in the replay, but i think its the rating or something
+	//	also its not written properly
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {} OR_ELSE
+
+	user_offset += 21 + l;
+	l = 0;
+
+	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
+	if(user_offset + l <= userdata_txtlen) {
+		out.Set("version", Napi::String::New(env, (const char*)&userdata_txt[user_offset], l));
+	} OR_ELSE
+
+	#undef OR_ELSE
+
+	uint8_t th08_stagenum_real[] = {
+		1, 2, 3, 4, 4, 5, 6, 6, 7
+	};
+
+	Napi::Array stages = Napi::Array::New(env);
+	for(int i = 0, h = 0; i < 9; i++) {
+		if(rep_raw->stage_offsets[i]) {
+			Napi::Object stage_ = Napi::Object::New(env);
+
+			uint32_t stage_off = rep_raw->stage_offsets[i] - sizeof(th08_replay_header_t);
+			if(stage_off + sizeof(th08_replay_stage_t) > rep_raw->size) {
+				out.Set("invalid", "stage data out of bounds");
+				return;
+			}
+			th08_replay_stage_t* stage = (th08_replay_stage_t*)(rep_dec + stage_off);
+				
+			stage_.Set("stage", th08_stagenum_real[i]);
+			
+			// ZUN decided to store the stage end score in the score field for some reason despite storing the
+			// start score in every other game. I don't know how ZUN determines the stage start score like that
+			// in his game, but this is how I am doing it.
+			if(i == 0) {
+				stage_.Set("score", 0);
+			} else {
+				for(int j = 1; j <= i; j++) {
+					if(rep_raw->stage_offsets[i - j]) {
+						uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th08_replay_header_t);
+						// If this stage_off was out of bounds, it would've been caught earlier
+						th08_replay_stage_t* s_ = (th08_replay_stage_t*)(rep_dec + stage_off);
+						stage_.Set("score", (double)s_->score * 10);
+						break;
+					}
+				}
+			}
+			stage_.Set("point_items", stage->point_items);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("human_youkai", stage->human_youkai);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("bombs", stage->bombs);
+
+			stages.Set(h, stage_);
+			h++;
+		}
+	}
+	out.Set("stages", stages);	
+	free(rep_dec);
+	free(rep_raw);
 }
 
 void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -715,6 +904,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 		break;
 	case 0x50523754: // "T7RP"
 		get_th07(ret, buf, len, env);
+		break;
+	case 0x50523854: // "T8RP"
+		get_th08(ret, buf, len, env);
 		break;
 	case 0x72333174: // "t13r"
 		_ver = buf[_th13_rep->userdata_offset + 16];
