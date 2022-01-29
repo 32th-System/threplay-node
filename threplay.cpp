@@ -98,6 +98,21 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("slowdown", rep->slowdown);
 	out.Set("difficulty", rep->difficulty);
 
+	const char* shots[] = {
+		"ReimuA",
+		"ReimuB",
+		"MarisaA",
+		"MarisaB",
+		"SakuyaA",
+		"SakuyaB"
+	};
+
+	if(rep->shot < 6) {
+		out.Set("shot", shots[rep->shot]);
+	} else {
+		out.Set("shot", rep->shot);
+	}
+
 	Napi::Array stages = Napi::Array::New(env);
 	for(int i = 0, h = 0; i < 7; i++) {
 		if(rep_raw->stage_offsets[i]) {
