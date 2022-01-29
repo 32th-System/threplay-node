@@ -7,8 +7,8 @@
 #include <unordered_map>
 
 unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length);
-void th_decrypt(unsigned char * userdata_txt, int length, int block_size, unsigned char base, unsigned char add);
-unsigned int th_unlzss(unsigned char * userdata_txt, unsigned char * decode, unsigned int length);
+void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned char base, unsigned char add);
+unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length);
 
 void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("game", "th06");
@@ -166,7 +166,7 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 std::unordered_map<std::string_view, const char*> th08_shots = {
-	{ "\x97\x64\x96\xB2\x81\x95\x97\x48\x81\x58\x8E\x71\x81\x40\x81\x40", "Border Team"}
+	{ "\x97\x64\x96\xB2\x81\x95\x97\x48\x81\x58\x8E\x71\x81\x40\x81\x40", "Ghost Team"}
 };
 
 void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
