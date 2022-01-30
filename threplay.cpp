@@ -165,8 +165,19 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	return;
 }
 
-std::unordered_map<std::string_view, const char*> th08_shots = {
-	{ "\x97\x64\x96\xB2\x81\x95\x97\x48\x81\x58\x8E\x71\x81\x40\x81\x40", "Ghost Team"}
+const std::unordered_map<std::string_view, const char*> th08_shots = {
+	{ "\x97\xEC\x96\xB2\x81\x95\x8E\x87\x81\x40\x81\x40\x81\x40\x81\x40", "Border Team"},
+	{ "\x96\x82\x97\x9D\x8D\xB9\x81\x95\x83\x41\x83\x8A\x83\x58\x81\x40", "Magic Team"},
+	{ "\x8D\xE7\x96\xE9\x81\x95\x83\x8C\x83\x7E\x83\x8A\x83\x41\x81\x40", "Scarlet Team"},
+	{ "\x97\x64\x96\xB2\x81\x95\x97\x48\x81\x58\x8E\x71\x81\x40\x81\x40", "Ghost Team"},
+	{ "\x94\x8E\x97\xED\x81\x40\x97\xEC\x96\xB2\x81\x40\x81\x40\x81\x40", "Reimu" },
+	{ "\x94\xAA\x89\x5F\x81\x40\x8E\x87\x81\x40\x81\x40\x81\x40\x81\x40", "Yukari" },
+	{ "\x96\xB6\x89\x4A\x81\x40\x96\x82\x97\x9D\x8D\xB9\x81\x40\x81\x40", "Marisa" },
+	{ "\x83\x41\x83\x8A\x83\x58\x81\x45\x82\x6C\x81\x40\x81\x40\x81\x40", "Alice" },
+	{ "\x8F\x5C\x98\x5A\x96\xE9\x81\x40\x8D\xE7\x96\xE9\x81\x40\x81\x40", "Sakuya" },
+	{ "\x83\x8C\x83\x7E\x83\x8A\x83\x41\x81\x45\x82\x72\x81\x40\x81\x40", "Remilia" },
+	{ "\x8D\xB0\xE9\xAE\x81\x40\x97\x64\x96\xB2\x81\x40\x81\x40\x81\x40", "Youmu" },
+	{ "\x90\xBC\x8D\x73\x8E\x9B\x81\x40\x97\x48\x81\x58\x8E\x71\x81\x40", "Yuyuko" }
 };
 
 void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
@@ -225,13 +236,12 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	
 	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
 	if(user_offset + l <= userdata_txtlen) {
-		//size_t l_ = sj2utf8(&userdata_txt[user_offset], l, _, 230);
 		userdata_txt[user_offset + l] = 0;
-		const char* __ = th08_shots[std::string_view(&userdata_txt[user_offset])];
-		if(!__) {
+		const char* _ = th08_shots[std::string_view(&userdata_txt[user_offset])];
+		if(!_) {
 			out.Set("shot", Napi::Buffer<char>::New(env, &userdata_txt[user_offset], l));
 		} else {
-			out.Set("shot", __);
+			out.Set("shot", _);
 		}
 	} OR_ELSE
 	
