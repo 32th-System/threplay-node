@@ -165,7 +165,7 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	return;
 }
 
-const std::unordered_map<std::string_view, const char*> th08_shots = {
+std::unordered_map<std::string_view, const char*> th08_shots {
 	{ "\x97\xEC\x96\xB2\x81\x95\x8E\x87\x81\x40\x81\x40\x81\x40\x81\x40", "Border Team"},
 	{ "\x96\x82\x97\x9D\x8D\xB9\x81\x95\x83\x41\x83\x8A\x83\x58\x81\x40", "Magic Team"},
 	{ "\x8D\xE7\x96\xE9\x81\x95\x83\x8C\x83\x7E\x83\x8A\x83\x41\x81\x40", "Scarlet Team"},
