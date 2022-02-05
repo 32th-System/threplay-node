@@ -63,21 +63,19 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("gameid", 1);
 
-	th07_replay_header_t* rep_raw = (th07_replay_header_t*)malloc(len);
+	uint8_t *rep_raw = (uint8_t*)malloc(len);
+	memcpy(rep_raw, buf, len);
+
+	th07_replay_header_t *header = (th07_replay_header_t*)rep_raw;
 
 	char ver[5] = "    ";
-	snprintf(ver, 5, "%.2hhx%.2hhx", rep_raw->version[0], rep_raw->version[1]);
+	snprintf(ver, 5, "%.2hhx%.2hhx", header->version[0], header->version[1]);
 	out.Set("version", ver);
 
-	memcpy(rep_raw, buf, len);
-	th06_decrypt(
-		(uint8_t*)rep_raw + offsetof(th07_replay_header_t, field_10),
-		rep_raw->key,
-		len - offsetof(th07_replay_header_t, field_10)
-	);
+	th06_decrypt(&rep_raw[0x10], header->key, len - 0x10);
 	
-	uint8_t* rep_dec = (uint8_t*)malloc(rep_raw->size);
-	th_unlzss((uint8_t*)rep_raw + sizeof(th07_replay_header_t), rep_dec, rep_raw->comp_size);
+	uint8_t* rep_dec = (uint8_t*)malloc(header->size);
+	th_unlzss(&rep_raw[sizeof(th07_replay_header_t)], rep_dec, header->comp_size);
 
 	th07_replay_t* rep = (th07_replay_t*)rep_dec;
 
@@ -94,46 +92,53 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 	Napi::Array stages = Napi::Array::New(env);
 	for(int i = 0, h = 0; i < 7; i++) {
-		if(rep_raw->stage_offsets[i]) {
+		if(header->stage_offsets[i]) {
+			//	apply offset to make up for the replay header not being in the decompressed buffer
+			header->stage_offsets[i] -= sizeof(th07_replay_header_t);
+		}
+		//	bounds check
+		if(header->stage_offsets[i] && header->stage_offsets[i] + sizeof(th07_replay_stage_t) < header->size) {
 			Napi::Object stage_ = Napi::Object::New(env);
-
-			uint32_t stage_off = rep_raw->stage_offsets[i] - sizeof(th07_replay_header_t);
-			if(stage_off + sizeof(th07_replay_stage_t) > rep_raw->size) {
-				// out.Set("invalid", "stage data out of bounds");
-				// return;
+			th07_replay_stage_t* stage = (th07_replay_stage_t*)(rep_dec + header->stage_offsets[i]);
+			
+			stage_.Set("stage", i + 1);
+			
+			// ZUN decided to store the stage end score in the score field for some reason despite storing the
+			// start score in every other game. I don't know how ZUN determines the stage start score like that
+			// in his game, but this is how I am doing it.
+			if(i == 0) {
+				stage_.Set("score", 0);
+			} else if(i == 6) {	//	extra
+				stage_.Set("score", (uint64_t)stage->score * 10);
 			} else {
-				th07_replay_stage_t* stage = (th07_replay_stage_t*)(rep_dec + stage_off);
-					
-				stage_.Set("stage", i + 1);
-				
-				// ZUN decided to store the stage end score in the score field for some reason despite storing the
-				// start score in every other game. I don't know how ZUN determines the stage start score like that
-				// in his game, but this is how I am doing it.
-				if(i == 0) {
-					stage_.Set("score", 0);
-				} else {
-					for(int j = 1; j <= i; j++) {
-						if(rep_raw->stage_offsets[i - j]) {
-							uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th07_replay_header_t);
-							// If this stage_off was out of bounds, it would've been caught earlier
+				bool found = false;
+				for(int j = 1; j <= i; j++) {
+					if(rep_raw->stage_offsets[i - j]) {
+						uint32_t stage_off = header->stage_offsets[i - j];
+						if(stage_off && stage_off + sizeof(th07_replay_stage_t) < header->size) {
 							th07_replay_stage_t* s_ = (th07_replay_stage_t*)(rep_dec + stage_off);
 							stage_.Set("score", (uint64_t)s_->score * 10);
+							found = true;
 							break;
 						}
 					}
 				}
-				stage_.Set("point_items", stage->point_items);
-				stage_.Set("piv", stage->piv);
-				stage_.Set("cherrymax", stage->cherrymax);
-				stage_.Set("cherry", stage->cherry);
-				stage_.Set("graze", stage->graze);
-				stage_.Set("power", stage->power);
-				stage_.Set("lives", stage->lives);
-				stage_.Set("bombs", stage->bombs);
-
-				stages.Set(h, stage_);
-				h++;
+				if(!found) {
+					//	just use current stage score then, fuck it
+					stage_.Set("score", (uint64_t)stage->score * 10);
+				}
 			}
+			stage_.Set("point_items", stage->point_items);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("cherrymax", stage->cherrymax);
+			stage_.Set("cherry", stage->cherry);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("bombs", stage->bombs);
+
+			stages.Set(h, stage_);
+			h++;
 		}
 	}
 	out.Set("stages", stages);	

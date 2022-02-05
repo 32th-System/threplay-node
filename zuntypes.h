@@ -25,7 +25,7 @@ struct th06_replay_header_t {
 };
 
 struct th06_replay_t {
-	uint8_t unknown; //TODO: seems to be ignored by the game. Padding?
+	// uint8_t unknown; //TODO: seems to be ignored by the game. Padding?
     char date[9]; // null-terminated string
     char name[9]; // null-terminated string
     uint16_t unknown2; //TODO: seems to be ignored by the game. Padding?
