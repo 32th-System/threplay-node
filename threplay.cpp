@@ -22,53 +22,38 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("shot", rep_raw->shot);
 	out.Set("difficulty", rep_raw->difficulty);
 
-	size_t size = len - offsetof(th06_replay_header_t, crypted_data);
-	if(size < sizeof(th06_replay_t) + sizeof(th06_replay_stage_t) + 6) {
-		//	TODO return some kind of status
-		return;
-	}
-	
+	size_t size = len - 0x0f;	
 	uint8_t* rep_dec = (uint8_t*)malloc(size);
 	memcpy(rep_dec, rep_raw->crypted_data, size);
 	th06_decrypt(rep_dec, rep_raw->key, size);
 
 	th06_replay_t* rep = (th06_replay_t*)rep_dec;
 	
-	// Replay name
 	if(rep->name[8] != '\0') rep->name[8] = '\0';
 	out.Set("name", rep->name);
-	// Date
 	char date[11] = "2000-01-01";
 	memcpy(date+5, rep->date, 2);
 	memcpy(date+8, &rep->date[3], 2);
 	out.Set("date", date);
-	// Score
 	out.Set("score", rep->score);
 	out.Set("slowdown", rep->slowdown);
 	
 	
 	Napi::Array stages = Napi::Array::New(env);
 	
-	for(int i = 0, h = 0; i < 6; i++) {
-		if(rep->stage_offsets[i]) {
+	for(int i = 0, h = 0; i < 7; i++) {
+		if(rep->stage_offsets[i] & rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
 			Napi::Object stage_ = Napi::Object::New(env);
+			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
+				
+			stage_.Set("stage", i + 1);
+			stage_.Set("score", stage->score);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("bombs", stage->bombs);
 
-			uint32_t stage_off = rep->stage_offsets[i] - offsetof(th06_replay_header_t, crypted_data);
-			if(stage_off + sizeof(th06_replay_stage_t) > size) {
-				// out.Set("invalid", "stage data out of bounds");
-				// return;
-			} else {
-				th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
-					
-				stage_.Set("stage", i + 1);
-				stage_.Set("score", stage->score);
-				stage_.Set("power", stage->power);
-				stage_.Set("lives", stage->lives);
-				stage_.Set("bombs", stage->bombs);
-
-				stages.Set(h, stage_);
-				h++;
-			}
+			stages.Set(h, stage_);
+			h++;
 		}
 	}
 	out.Set("stages", stages);	
