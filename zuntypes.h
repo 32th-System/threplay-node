@@ -15,9 +15,9 @@ struct th_timer_t {
 
 struct th06_replay_header_t {
     char magic[4];
-    uint16_t version;
+    char version[2];
     uint8_t shot;
-    uint8_t rank;
+    uint8_t difficulty;
     uint32_t checksum;
     uint16_t unknown2;
     uint8_t key;
@@ -48,7 +48,7 @@ struct th06_replay_stage_t {
 
 struct th07_replay_header_t {
     uint32_t magic;
-    uint16_t version;
+    char version[2];
     uint8_t field_6[7];
     uint8_t key;
     uint16_t field_E;
@@ -127,22 +127,68 @@ struct th08_replay_stage_t {
 	uint8_t unknown3;
 };
 
+struct th09_replay_header_t {
+    char magic[4];
+    char version[2];
+    char unknown[6];
+    uint32_t comp_size; //  doubles as USERDATA offset
+    uint32_t unknown2;  //  probs checksum or some shit
+    uint8_t key;
+    char unknown3[7];
+    uint32_t size;
+    uint32_t stage_offsets[40];
+};
+
+struct th09_replay_t {
+    char unknown[4];
+    char date[10];  //  double null terminated string
+    char name[9];   //  null terminated string
+    uint8_t difficulty;
+};
+
+struct th09_replay_stage_t {
+    uint32_t score;
+    uint16_t pair;  //  idk what this is but each stage pair has the same value
+                    //  maybe its the stage time or something
+    uint8_t shot;
+    uint8_t ai; //  i think? 0 = human 1 = ai
+    uint8_t lives;
+    uint8_t unknown3;   //  it's usually 4, but idk
+};
+
 struct th10_replay_header_t {
     uint32_t magic;
     uint32_t version;   //  i assume, please doublecheck
     uint32_t user_offset;
-    char ignore2[16];    //  document later
+    uint32_t comp_size;
+    char ignore2[12];    //  document later
     uint32_t filelength;
-    uint32_t decryptedlength;
+    uint32_t size;
     //  compressed data begins at offset 36
+};
+
+struct th10_replay_t {
+    char name[12];  //  4 nulls at end
+    uint32_t time;  //  its a 32-bit time_t value but there's no standard definition for that
+    uint32_t score;
+    char unknown2[52];
+    float slowdown;
+    uint8_t stagecount; //  its probs a full int but i dont care
+    char pad[3];
+    uint32_t unknown4;
+    uint32_t shot;
+    uint32_t difficulty;
+    uint32_t unknown5;
+    uint32_t unknown6;
 };
 
 //  first stage offset is at 0x64 of the decoded data
 //  number of stage sections is at 0x4c
 
 struct th10_replay_stage_t {
-    uint32_t stage;
-    uint32_t ignore;    //  either seed or header length
+    uint16_t stage;
+    uint16_t ignore3;
+    uint32_t ignore;
     uint32_t next_stage_offset; // add to current stage offset, + current stage header length which is 0x1c4
     uint32_t score;
     uint32_t power;
@@ -156,8 +202,20 @@ struct th10_replay_stage_t {
     //  stage offset 0x70, stage count 0x58
 #define th11_replay_header_t th10_replay_header_t
 
+struct th11_replay_t {
+    char name[12];  //  4 nulls at end
+    uint64_t time;  //  its a 32-bit time_t value but there's no standard definition for that
+    uint32_t score;
+    char unknown2[64];
+    uint32_t stagecount;
+    uint32_t unknown3;
+    uint32_t shot;
+    uint32_t difficulty;
+};
+
 struct th11_replay_stage_t {
-    uint32_t stage;
+    uint16_t stage;
+    uint16_t unknown;
     uint32_t ignore;    //  either seed or header length
     uint32_t next_stage_offset; // + 0x90
     uint32_t score;
@@ -172,9 +230,24 @@ struct th11_replay_stage_t {
 
 #define th12_replay_header_t th10_replay_header_t
 
+struct th12_replay_t {
+    char name[12];  //  4 nulls at the end
+    uint64_t time;  //  64 bit time_t value but theres no standard representation for that so
+    uint32_t score;
+    char unk[60];
+    float slowdown;
+    uint32_t stagecount;
+    uint32_t shot;
+    uint32_t subshot;
+    uint32_t difficulty;
+    uint32_t cleared;
+    uint32_t unk2;
+};
+
 struct th12_replay_stage_t {
-    uint32_t stage;
-    uint32_t ignore;    //  either seed or header length
+    uint16_t stage;
+    uint16_t rng;
+    uint32_t frame_count;    //  either seed or header length
     uint32_t next_stage_offset; // + 0xa0
     uint32_t score;
     uint32_t power;
@@ -186,8 +259,10 @@ struct th12_replay_stage_t {
     uint32_t ufo_1;
     uint32_t ufo_2;
     uint32_t ufo_3;
-    char ignore2[0x18];
+    char ignore2[24];
     uint32_t graze;
+    uint32_t unk;
+    uint32_t unk2[20];
 };
 
 #define th128_replay_header_t th10_replay_header_t
@@ -221,9 +296,9 @@ struct th13_replay_t {
     uint64_t timestamp;
     uint32_t score;
     uint8_t unk[60];
-    uint32_t slowdown;
+    float slowdown;
     uint32_t stage_count;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t difficulty;
     uint32_t cleared;
@@ -231,8 +306,13 @@ struct th13_replay_t {
     uint32_t spell_practice_id;
 };
 
-struct th13_stage_global_t {
-    uint32_t chara;
+struct th13_replay_stage_t {
+    uint16_t stage_num;
+    uint16_t rng;
+    uint32_t frame_count;
+    uint32_t end_off;
+    uint32_t pos_subpixel[2];
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t score;
     uint32_t field_C;
@@ -254,22 +334,18 @@ struct th13_stage_global_t {
     uint32_t bomb_pieces;
     uint32_t trance_gauge;
     uint32_t field_54;
+    uint32_t player_is_focused;
+    uint32_t spellcard_real_times[21];
 };
 
-struct th13_replay_stage_t {
+struct th14_replay_stage_t {
     uint16_t stage_num;
     uint16_t rng;
     uint32_t frame_count;
     uint32_t end_off;
     uint32_t pos_subpixel[2];
-    th13_stage_global_t stagedata;
-    uint32_t player_is_focused;
-    uint32_t spellcard_real_times[21];
-};
-
-struct th14_stage_global_t {
-    uint32_t stage_num;
     uint32_t _stage_num;
+    uint32_t __stage_num;
     uint32_t score;
     uint32_t difficulty;
     uint32_t continues;
@@ -294,15 +370,6 @@ struct th14_stage_global_t {
     uint32_t field_5C;
     float last_item_collected_pos[3];
     uint32_t poc_count;
-};
-
-struct th14_replay_stage_t {
-    uint16_t stage_num;
-    uint16_t rng;
-    uint32_t frame_count;
-    uint32_t end_off;
-    uint32_t pos_subpixel[2];
-    th14_stage_global_t stagedata;
     uint32_t player_is_focused;
     uint32_t spellcard_real_times[21];
 };
@@ -314,7 +381,7 @@ struct th14_replay_t {
     uint8_t unk[96];
     float slowdown;
     uint32_t stage_count;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot;
     uint32_t difficulty;
     uint32_t cleared;
@@ -351,7 +418,7 @@ struct th15_replay_t {
     char unk0[108];
     float slowdown;
     uint32_t stage_count;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t difficulty;
     uint32_t cleared;
@@ -359,13 +426,19 @@ struct th15_replay_t {
     uint32_t spell_practice_id;
 };
 
-struct th15_stage_global_t {
+struct th15_replay_stage_t
+{
+    uint16_t stage;
+    uint16_t rng;
+    int frame_count;
+    int end_off;
+    int pos_subpixel[2];
     uint32_t stage_num;
     uint32_t _stage_num;
     uint32_t chapter;
     uint32_t time_in_stage;
     uint32_t time_in_chapter;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t score;
     uint32_t difficulty;
@@ -403,27 +476,22 @@ struct th15_stage_global_t {
     uint32_t __pd_resets_total;
     uint32_t __pd_resets_stage[8];
     uint32_t __pd_resets_chapter;
-};
-
-struct th15_replay_stage_t
-{
-    uint16_t stage;
-    uint16_t rng;
-    int frame_count;
-    int end_off;
-    int pos_subpixel[2];
-    th15_stage_global_t stagedata;
     int player_is_focused;
     int spellcard_real_times[21];
 };
 
-struct th16_stage_global_t {
+struct th16_replay_stage_t {
+    uint16_t stage;
+    uint16_t rng_state;
+    uint32_t frame_count;
+    uint32_t end_off;
+    uint32_t pos_subpixel[2];
     uint32_t stage_num;
     uint32_t _stage_num;
     uint32_t chapter;
     uint32_t stage_time;
     uint32_t __time_in_chapter_possibly_broken;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t subseason;
     uint32_t score;
@@ -448,8 +516,8 @@ struct th16_stage_global_t {
     uint32_t next_score_extend_idx;
     uint32_t bombs;
     uint32_t bomb_pieces;
-    uint32_t season_power;
-    uint32_t season_power_max;
+    uint32_t season;
+    uint32_t season_max;
     uint32_t field_80;
     uint32_t field_84;
     uint32_t field_88;
@@ -460,8 +528,8 @@ struct th16_stage_global_t {
     uint32_t field_9C;
     uint32_t field_A0;
     uint32_t field_A4;
-    uint32_t season_power_required[6];
-    uint32_t _season_power_max;
+    uint32_t season_required[6];
+    uint32_t _season_max;
     uint32_t field_C4;
     uint32_t field_C8;
     uint32_t field_CC;
@@ -472,15 +540,6 @@ struct th16_stage_global_t {
     float last_item_collected_pos[3];
     uint32_t th14_item_spawn_count;
     uint8_t field_F0[308];
-};
-
-struct th16_replay_stage_t {
-    uint16_t stage;
-    uint16_t rng_state;
-    uint32_t frame_count;
-    uint32_t end_off;
-    uint32_t pos_subpixel[2];
-    th16_stage_global_t stagedata;
     uint32_t field_238;
     uint32_t field_23C;
     uint32_t spellcard_real_times[21];
@@ -493,7 +552,7 @@ struct th16_replay_t {
     uint32_t unk0[25];
     float slowdown;
     uint32_t stage_count;
-    uint32_t chara;
+    uint32_t shot;
     uint32_t subshot_unused;
     uint32_t difficulty;
     uint32_t cleared;
@@ -520,7 +579,7 @@ struct th17_stage_global_t {
     uint32_t field_4;
     uint32_t chapter;
     uint32_t stage_time[3];
-    uint32_t chara;
+    uint32_t shot;
     uint32_t goast;
     uint32_t score;
     uint32_t diff;
@@ -570,8 +629,8 @@ struct th17_replay_t {
     char unk1[100];
     float slowdown;
     uint32_t stage_count;
-    uint32_t chara;
-    uint32_t goast;
+    uint32_t shot;
+    uint32_t subshot;
     uint32_t difficulty;
     uint32_t cleared;
     char unk2[4];
@@ -594,7 +653,7 @@ struct th18_stage_global_t {
   uint32_t _stage_num;
   uint32_t field_8;
   uint32_t stage_time[3];
-  uint32_t chara;
+  uint32_t shot;
   uint32_t subshot;
   uint32_t score;
   uint32_t difficulty;
@@ -655,7 +714,7 @@ struct th18_replay_t
   char unk0[136];
   float slowdown;
   uint32_t stage_count;
-  uint32_t chara;
+  uint32_t shot;
   uint32_t subshot_unused;
   uint32_t difficulty;
   uint32_t cleared;

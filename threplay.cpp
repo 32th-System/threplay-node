@@ -11,42 +11,41 @@ void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned cha
 unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length);
 
 void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th06");
+	out.Set("gameid", 0);
+	
+	if(len < sizeof(th06_replay_header_t)) return;
 	th06_replay_header_t* rep_raw = (th06_replay_header_t*)buf;
+
+	char ver[5] = "    ";
+	snprintf(ver, 5, "%.2hhx%.2hhx", rep_raw->version[0], rep_raw->version[1]);
+	out.Set("version", ver);
+	out.Set("shot", rep_raw->shot);
+	out.Set("difficulty", rep_raw->difficulty);
 
 	size_t size = len - offsetof(th06_replay_header_t, crypted_data);
 	if(size < sizeof(th06_replay_t) + sizeof(th06_replay_stage_t) + 6) {
-		out.Set("invalid", "too small");
+		//	TODO return some kind of status
 		return;
 	}
 	
 	uint8_t* rep_dec = (uint8_t*)malloc(size);
 	memcpy(rep_dec, rep_raw->crypted_data, size);
 	th06_decrypt(rep_dec, rep_raw->key, size);
-	
+
 	th06_replay_t* rep = (th06_replay_t*)rep_dec;
 	
 	// Replay name
+	if(rep->name[8] != '\0') rep->name[8] = '\0';
 	out.Set("name", rep->name);
 	// Date
-	out.Set("date", rep->date);
+	char date[11] = "2000-01-01";
+	memcpy(date+5, rep->date, 2);
+	memcpy(date+8, &rep->date[3], 2);
+	out.Set("date", date);
 	// Score
 	out.Set("score", rep->score);
 	out.Set("slowdown", rep->slowdown);
 	
-	const char* shots[] = {
-		"ReimuA",
-		"ReimuB",
-		"MarisaA",
-		"MarisaB"
-	};
-	
-	if(rep_raw->shot < 4) {
-		out.Set("shot", shots[rep_raw->shot]);
-	} else {
-		// If typeof(rep.shot) === "Number" the shottype in the replay data is invalid
-		out.Set("shot", rep_raw->shot);	
-	}
 	
 	Napi::Array stages = Napi::Array::New(env);
 	
@@ -56,19 +55,20 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 			uint32_t stage_off = rep->stage_offsets[i] - offsetof(th06_replay_header_t, crypted_data);
 			if(stage_off + sizeof(th06_replay_stage_t) > size) {
-				out.Set("invalid", "stage data out of bounds");
-				return;
-			}
-			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
-				
-			stage_.Set("stage", i + 1);
-			stage_.Set("score", stage->score);
-			stage_.Set("power", stage->power);
-			stage_.Set("lives", stage->lives);
-			stage_.Set("bombs", stage->bombs);
+				// out.Set("invalid", "stage data out of bounds");
+				// return;
+			} else {
+				th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
+					
+				stage_.Set("stage", i + 1);
+				stage_.Set("score", stage->score);
+				stage_.Set("power", stage->power);
+				stage_.Set("lives", stage->lives);
+				stage_.Set("bombs", stage->bombs);
 
-			stages.Set(h, stage_);
-			h++;
+				stages.Set(h, stage_);
+				h++;
+			}
 		}
 	}
 	out.Set("stages", stages);	
@@ -76,9 +76,14 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th07");
+	out.Set("gameid", 1);
 
 	th07_replay_header_t* rep_raw = (th07_replay_header_t*)malloc(len);
+
+	char ver[5] = "    ";
+	snprintf(ver, 5, "%.2hhx%.2hhx", rep_raw->version[0], rep_raw->version[1]);
+	out.Set("version", ver);
+
 	memcpy(rep_raw, buf, len);
 	th06_decrypt(
 		(uint8_t*)rep_raw + offsetof(th07_replay_header_t, field_10),
@@ -91,29 +96,16 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 	th07_replay_t* rep = (th07_replay_t*)rep_dec;
 
+	if(rep->name[8] != '\0') rep->name[8] = '\0';
 	out.Set("name", rep->name);
 	char date[11] = "2000-01-01";
 	memcpy(date+5, rep->date, 2);
 	memcpy(date+8, &rep->date[3], 2);
 	out.Set("date", date);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("difficulty", rep->difficulty);
-
-	const char* shots[] = {
-		"ReimuA",
-		"ReimuB",
-		"MarisaA",
-		"MarisaB",
-		"SakuyaA",
-		"SakuyaB"
-	};
-
-	if(rep->shot < 6) {
-		out.Set("shot", shots[rep->shot]);
-	} else {
-		out.Set("shot", rep->shot);
-	}
+	out.Set("shot", rep->shot);
 
 	Napi::Array stages = Napi::Array::New(env);
 	for(int i = 0, h = 0; i < 7; i++) {
@@ -122,40 +114,41 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 			uint32_t stage_off = rep_raw->stage_offsets[i] - sizeof(th07_replay_header_t);
 			if(stage_off + sizeof(th07_replay_stage_t) > rep_raw->size) {
-				out.Set("invalid", "stage data out of bounds");
-				return;
-			}
-			th07_replay_stage_t* stage = (th07_replay_stage_t*)(rep_dec + stage_off);
-				
-			stage_.Set("stage", i + 1);
-			
-			// ZUN decided to store the stage end score in the score field for some reason despite storing the
-			// start score in every other game. I don't know how ZUN determines the stage start score like that
-			// in his game, but this is how I am doing it.
-			if(i == 0) {
-				stage_.Set("score", 0);
+				// out.Set("invalid", "stage data out of bounds");
+				// return;
 			} else {
-				for(int j = 1; j <= i; j++) {
-					if(rep_raw->stage_offsets[i - j]) {
-						uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th07_replay_header_t);
-						// If this stage_off was out of bounds, it would've been caught earlier
-						th07_replay_stage_t* s_ = (th07_replay_stage_t*)(rep_dec + stage_off);
-						stage_.Set("score", (double)s_->score * 10);
-						break;
+				th07_replay_stage_t* stage = (th07_replay_stage_t*)(rep_dec + stage_off);
+					
+				stage_.Set("stage", i + 1);
+				
+				// ZUN decided to store the stage end score in the score field for some reason despite storing the
+				// start score in every other game. I don't know how ZUN determines the stage start score like that
+				// in his game, but this is how I am doing it.
+				if(i == 0) {
+					stage_.Set("score", 0);
+				} else {
+					for(int j = 1; j <= i; j++) {
+						if(rep_raw->stage_offsets[i - j]) {
+							uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th07_replay_header_t);
+							// If this stage_off was out of bounds, it would've been caught earlier
+							th07_replay_stage_t* s_ = (th07_replay_stage_t*)(rep_dec + stage_off);
+							stage_.Set("score", (uint64_t)s_->score * 10);
+							break;
+						}
 					}
 				}
-			}
-			stage_.Set("point_items", stage->point_items);
-			stage_.Set("piv", stage->piv);
-			stage_.Set("cherrymax", stage->cherrymax);
-			stage_.Set("cherry", stage->cherry);
-			stage_.Set("graze", stage->graze);
-			stage_.Set("power", stage->power);
-			stage_.Set("lives", stage->lives);
-			stage_.Set("bombs", stage->bombs);
+				stage_.Set("point_items", stage->point_items);
+				stage_.Set("piv", stage->piv);
+				stage_.Set("cherrymax", stage->cherrymax);
+				stage_.Set("cherry", stage->cherry);
+				stage_.Set("graze", stage->graze);
+				stage_.Set("power", stage->power);
+				stage_.Set("lives", stage->lives);
+				stage_.Set("bombs", stage->bombs);
 
-			stages.Set(h, stage_);
-			h++;
+				stages.Set(h, stage_);
+				h++;
+			}
 		}
 	}
 	out.Set("stages", stages);	
@@ -181,7 +174,7 @@ std::unordered_map<std::string_view, const char*> th08_shots {
 };
 
 void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th08");
+	out.Set("gameid", 2);
 
 	th08_replay_header_t* rep_raw = (th08_replay_header_t*)malloc(len);
 	memcpy(rep_raw, buf, len);
@@ -266,7 +259,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	
 	for(uint16_t crlf = *(uint16_t*)&userdata_txt[user_offset + l]; crlf!=0x0a0d && user_offset + l <= userdata_txtlen;crlf = *(uint16_t*)&userdata_txt[user_offset + ++l]);
 	if(user_offset + l <= userdata_txtlen) {
-		out.Set("cleared", Napi::String::New(env, &userdata_txt[user_offset], l));
+		out.Set("stage", Napi::String::New(env, &userdata_txt[user_offset], l));
 	} OR_ELSE
 
 	user_offset += 11 + l;
@@ -340,7 +333,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 						uint32_t stage_off = rep_raw->stage_offsets[i - j] - sizeof(th08_replay_header_t);
 						// If this stage_off was out of bounds, it would've been caught earlier
 						th08_replay_stage_t* s_ = (th08_replay_stage_t*)(rep_dec + stage_off);
-						stage_.Set("score", (double)s_->score * 10);
+						stage_.Set("score", (uint64_t)s_->score * 10);
 						break;
 					}
 				}
@@ -363,11 +356,11 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th13");
+	out.Set("gameid", 10);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 
 	if(rep_raw->size < sizeof(th13_replay_t) + sizeof(th13_replay_stage_t) * 2 + 6) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 
@@ -384,23 +377,12 @@ void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
-	
-	const char* charas[] = {
-		"Reimu",
-		"Marisa",
-		"Sanae",
-		"Youmu"
-	};
-	
-	if(rep->chara < 4 && rep->subshot_unused < 1) {
-		out.Set("chara", charas[rep->chara]);
-	} else {
-		out.Set("chara", rep->chara);
-		out.Set("subshot", rep->subshot_unused);
-	}
+	out.Set("shot", rep->shot);
+	// out.Set("subshot", rep->subshot_unused);
+
 				
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th13_replay_t);
@@ -409,35 +391,36 @@ void get_th13(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		th13_replay_stage_t* stage = (th13_replay_stage_t*)((size_t)rep + stage_off);
 
 		if(stage_off + sizeof(th13_replay_stage_t) > rep_raw->size) {
-			out.Set("invalid", "stage data out of bounds");
-			return;
+			// fuck, quit
+			i = rep->stage_count;
+		} else {
+			stage_.Set("stage", stage->stage_num);
+			stage_.Set("score", (uint64_t)stage->score * 10);
+			stage_.Set("graze", stage->graze);
+			//stage_.Set("misscount", stage->miss_count);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("life_pieces", stage->life_pieces);
+			stage_.Set("bombs", stage->bombs);
+			stage_.Set("bomb_pieces", stage->bomb_pieces);
+			stage_.Set("trance", stage->trance_gauge);
+					
+			stages.Set(i, stage_);
+			stage_off += stage->end_off + sizeof(th13_replay_stage_t);
 		}
 				
-		stage_.Set("stage", stage->stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		//stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("life_pieces", stage->stagedata.life_pieces);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
-		stage_.Set("trance_gauge", stage->stagedata.trance_gauge);
-				
-		stages.Set(i, stage_);
-		stage_off += stage->end_off + sizeof(th13_replay_stage_t);
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
 }
 
 void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th14");
+	out.Set("gameid", 11);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 
 	if(rep_raw->size < sizeof(th14_replay_t) + sizeof(th14_replay_stage_t) * 2 + 6) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 
@@ -454,29 +437,12 @@ void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
+	out.Set("shot", rep->shot);
+	out.Set("subshot", rep->subshot);
 	
-	const char* charas[] = {
-		"Reimu",
-		"Marisa",
-		"Sakuya"
-	};
-	const char* shots = "AB";
-	
-	if(rep->chara < 3 && rep->subshot < 2) {
-		#define ch rep->chara
-		size_t charlen = strlen(charas[ch]);
-		char truechara[16] = {};
-		memcpy(truechara, charas[ch], charlen);
-		truechara[charlen] = shots[rep->subshot];
-		out.Set("shot", truechara);
-		#undef ch
-	} else {
-		out.Set("chara", rep->chara);
-		out.Set("subshot", rep->subshot);
-	}
 				
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th14_replay_t);
@@ -485,35 +451,36 @@ void get_th14(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		th14_replay_stage_t* stage = (th14_replay_stage_t*)((size_t)rep + stage_off);
 
 		if(stage_off + sizeof(th14_replay_stage_t) > rep_raw->size) {
-			out.Set("invalid", "stage data out of bounds");
+			i = rep->stage_count;
+			// out.Set("invalid", "stage data out of bounds");
 			return;
-		}
-				
-		stage_.Set("stage", stage->stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		//stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("life_pieces", stage->stagedata.life_pieces);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
-		stage_.Set("poc_count", stage->stagedata.poc_count);
-				
-		stages.Set(i, stage_);
-		stage_off += stage->end_off + sizeof(th14_replay_stage_t);
+		} else {
+			stage_.Set("stage", stage->stage_num);
+			stage_.Set("score", (uint64_t)stage->score * 10);
+			stage_.Set("graze", stage->graze);
+			//stage_.Set("misscount", stage->miss_count);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("life_pieces", stage->life_pieces);
+			stage_.Set("bombs", stage->bombs);
+			stage_.Set("bomb_pieces", stage->bomb_pieces);
+			stage_.Set("poc_count", stage->poc_count);
+					
+			stages.Set(i, stage_);
+			stage_off += stage->end_off + sizeof(th14_replay_stage_t);
+		}				
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
 }
 
 void get_th143(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th143");
+	out.Set("gameid", 12);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 
 	if(rep_raw->size < sizeof(th143_replay_t)) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 
@@ -529,7 +496,7 @@ void get_th143(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("primary_item", rep->primary_item);
 	out.Set("secondary_item", rep->secondary_item);
@@ -540,11 +507,11 @@ void get_th143(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th15");
+	out.Set("gameid", 13);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 	
 	if(rep_raw->size < sizeof(th15_replay_t) + sizeof(th15_replay_stage_t) * 2 + 6) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 
@@ -561,22 +528,10 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
-	
-	const char* charas[] = {
-		"Reimu",
-		"Marisa",
-		"Sanae",
-		"Reisen"
-	};
-		
-	if(rep->chara < 4) {
-		out.Set("chara", charas[rep->chara]);
-	} else {
-		out.Set("chara", rep->chara);
-	}
+	out.Set("shot", rep->shot);
 				
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th15_replay_t);
@@ -585,34 +540,35 @@ void get_th15(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		th15_replay_stage_t* stage = (th15_replay_stage_t*)((size_t)rep + stage_off);
 
 		if(stage_off + sizeof(th15_replay_stage_t) > rep_raw->size) {
-			out.Set("invalid", "stage data out of bounds");
-			return;
-		}
-				
-		stage_.Set("stage", stage->stagedata.stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("life_pieces", stage->stagedata.life_pieces);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
-				
-		stages.Set(i, stage_);
-		stage_off += stage->end_off + sizeof(th15_replay_stage_t);
+			i = rep->stage_count;
+			// out.Set("invalid", "stage data out of bounds");
+			// return;
+		} else {
+			stage_.Set("stage", stage->stage_num);
+			stage_.Set("score", (uint64_t)stage->score * 10);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("misscount", stage->miss_count);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("life_pieces", stage->life_pieces);
+			stage_.Set("bombs", stage->bombs);
+			stage_.Set("bomb_pieces", stage->bomb_pieces);
+					
+			stages.Set(i, stage_);
+			stage_off += stage->end_off + sizeof(th15_replay_stage_t);
+		}				
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
 }
 
 void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th16");
+	out.Set("gameid", 14);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 	
 	if(rep_raw->size < sizeof(th16_replay_t) + sizeof(th16_replay_stage_t) * 2 + 6) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 	
@@ -634,30 +590,11 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
-	
-	const char* charas[] = {
-		"Reimu",
-		"Cirno",
-		"Aya",
-		"Marisa"
-	};
-	const char* seasons[] = {
-		"Spring",
-		"Summer",
-		"Autumn",
-		"Winter",
-		"Extra"
-	};
-	
-	if(rep->chara < 4 && rep->subseason < 5) {
-		out.Set("shot", std::string(charas[rep->chara]) + seasons[rep->subseason]);
-	} else {
-		out.Set("chara", rep->chara);
-		out.Set("subseason", rep->subseason);
-	}
+	out.Set("shot", rep->shot);
+	out.Set("subseason", rep->subseason);
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th16_replay_t);
@@ -665,33 +602,34 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		Napi::Object stage_ = Napi::Object::New(env);
 		th16_replay_stage_t* stage = (th16_replay_stage_t*)((size_t)rep + stage_off);
 				
-		stage_.Set("stage", stage->stagedata.stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
-		stage_.Set("season_power", stage->stagedata.season_power);
-		
-		// TODO: maybe check that this data stays the same every stage?
-		// I don't know much about this game, of it's natural for it
-		// to change between stages I wouldn't know
-		out.Set("season_power_max", stage->stagedata.season_power_max);
-		Napi::Array season_power_required = Napi::Array::New(env);
-		for(uint32_t i = 0; i < 6; i++) {
-			season_power_required.Set(i, stage->stagedata.season_power_required[i]);
-		}
-		out.Set("season_power_required", season_power_required);
-				
-		stages.Set(i, stage_);
-		stage_off += stage->end_off + sizeof(th16_replay_stage_t);
-
 		if(stage_off + sizeof(th16_replay_stage_t) > rep_raw->size) {
-			out.Set("invalid", "stage data out of bounds");
-			return;
+			i = rep->stage_count;
+			// out.Set("invalid", "stage data out of bounds");
+			// return;
+		} else {
+			stage_.Set("stage", stage->stage_num);
+			stage_.Set("score", (uint64_t)stage->score * 10);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("misscount", stage->miss_count);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("bombs", stage->bombs);
+			stage_.Set("bomb_pieces", stage->bomb_pieces);
+			stage_.Set("season", stage->season);
+			
+			// TODO: maybe check that this data stays the same every stage?
+			// I don't know much about this game, of it's natural for it
+			// to change between stages I wouldn't know
+			out.Set("season_max", stage->season_max);
+			Napi::Array season_required = Napi::Array::New(env);
+			for(uint32_t i = 0; i < 6; i++) {
+				season_required.Set(i, stage->season_required[i]);
+			}
+			out.Set("season_required", season_required);
+					
+			stages.Set(i, stage_);
+			stage_off += stage->end_off + sizeof(th16_replay_stage_t);
 		}
 	}
 	out.Set("stages", stages);
@@ -699,11 +637,11 @@ void get_th16(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 void get_th165(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th165");
+	out.Set("gameid", 15);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 
 	if(rep_raw->size < sizeof(th165_replay_t)) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 
@@ -728,11 +666,11 @@ void get_th165(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 }
 
 void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
-	out.Set("game", "th17");
+	out.Set("gameid", 16);
 	th13_replay_header_t* rep_raw = (th13_replay_header_t*)buf;
 
 	if(rep_raw->size < sizeof(th17_replay_t) + sizeof(th17_replay_stage_t) * 2 + 6) {
-		out.Set("invalid", "too small");
+		// out.Set("invalid", "too small");
 		return;
 	}
 	
@@ -754,26 +692,11 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
-	
-	const char* charas[] = {
-		"Reimu",
-		"Marisa",
-		"Youmu"
-	};
-	const char* goasts[] = {
-		"Wolf",
-		"Otter",
-		"Eagle"
-	};
-	if(rep->chara < 3 && rep->goast < 3) {
-		out.Set("shot", std::string(charas[rep->chara]) + goasts[rep->goast]);
-	} else {
-		out.Set("chara", rep->chara);
-		out.Set("goast", rep->goast);
-	}
+	out.Set("shot", rep->shot);
+	out.Set("subshot", rep->subshot);
 
 	Napi::Array stages = Napi::Array::New(env);
 	size_t stage_off = sizeof(th17_replay_t);
@@ -782,29 +705,30 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		th17_replay_stage_t* stage = (th17_replay_stage_t*)((size_t)rep + stage_off);
 
 		if(stage_off + sizeof(th17_replay_stage_t) > rep_raw->size) {
-			out.Set("invalid", "stage data out of bounds");
-			return;
-		}
-				
-		stage_.Set("stage", stage->stagedata.stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("life_pieces", stage->stagedata.life_pieces);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
-		
-		Napi::Array tokens = Napi::Array::New(env);
-		for(uint32_t j = 0; j < 5; j++) {
-			tokens.Set(j, stage->stagedata.tokens[j]);
-		}
-		stage_.Set("tokens", tokens);
-		
-		stages.Set(i, stage_);
-		stage_off += stage->end_off + sizeof(th17_replay_stage_t);
+			i = rep->stage_count;
+			// out.Set("invalid", "stage data out of bounds");
+			// return;
+		} else {
+			stage_.Set("stage", stage->stage_num);
+			stage_.Set("score", (uint64_t)stage->score * 10);
+			stage_.Set("graze", stage->graze);
+			stage_.Set("misscount", stage->miss_count);
+			stage_.Set("piv", stage->piv);
+			stage_.Set("power", stage->power);
+			stage_.Set("lives", stage->lives);
+			stage_.Set("life_pieces", stage->life_pieces);
+			stage_.Set("bombs", stage->bombs);
+			stage_.Set("bomb_pieces", stage->bomb_pieces);
+			
+			Napi::Array tokens = Napi::Array::New(env);
+			for(uint32_t j = 0; j < 5; j++) {
+				tokens.Set(j, stage->tokens[j]);
+			}
+			stage_.Set("tokens", tokens);
+			
+			stages.Set(i, stage_);
+			stage_off += stage->end_off + sizeof(th17_replay_stage_t);
+		}				
 	}
 	out.Set("stages", stages);
 	free(rep_dec);
@@ -837,7 +761,7 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("name", rep->name);
 	out.Set("date", rep->timestamp);
 	out.Set("difficulty", rep->difficulty);
-	out.Set("score", (double)rep->score * 10);
+	out.Set("score", (uint64_t)rep->score * 10);
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
 	
@@ -865,16 +789,16 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			return;
 		}
 				
-		stage_.Set("stage", stage->stagedata.stage_num);
-		stage_.Set("score", (double)stage->stagedata.score * 10);
-		stage_.Set("graze", stage->stagedata.graze);
-		stage_.Set("misscount", stage->stagedata.miss_count);
-		stage_.Set("piv", stage->stagedata.piv);
-		stage_.Set("power", stage->stagedata.power);
-		stage_.Set("lives", stage->stagedata.lives);
-		stage_.Set("life_pieces", stage->stagedata.life_pieces);
-		stage_.Set("bombs", stage->stagedata.bombs);
-		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
+		stage_.Set("stage", stage->stage_num);
+		stage_.Set("score", (uint64_t)stage->score * 10);
+		stage_.Set("graze", stage->graze);
+		stage_.Set("misses", stage->miss_count);
+		stage_.Set("piv", stage->piv);
+		stage_.Set("power", stage->power);
+		stage_.Set("lives", stage->lives);
+		stage_.Set("life_pieces", stage->life_pieces);
+		stage_.Set("bombs", stage->bombs);
+		stage_.Set("bomb_pieces", stage->bomb_pieces);
 		
 		Napi::Array cards = Napi::Array::New(env);
 		for(int i = 0; i < 256; i++) {
