@@ -3,16 +3,20 @@
 	"version": "0.0.0",
 	"description": "Node.js Addons Example #2",
 	"dependencies": {
-		"node-addon-api": "^1.0.0"
+		"node-addon-api": "^1.7.2"
 	},
 	"gypfile": true,
 	"scripts": {
+		"install": "cmake-js compile",
 		"start": "node test.js",
 		"build:dev": "node-gyp build --debug",
 		"build": "node-gyp build",
 		"rebuild:dev": "node-gyp rebuild --debug",
-    	"rebuild": "node-gyp rebuild",
-    	"clean": "node-gyp clean"
+		"rebuild": "node-gyp rebuild",
+		"clean": "node-gyp clean"
 	},
-	"license": "UNLICENSE"
+	"license": "UNLICENSE",
+	"devDependencies": {
+		"cmake-js": "^6.3.0"
+	}
 }

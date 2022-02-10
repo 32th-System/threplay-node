@@ -574,7 +574,27 @@ struct th165_replay_t {
     uint32_t scene;
 };
 
-struct th17_stage_global_t {
+struct th17_replay_t {
+    char name[16];
+    uint64_t timestamp;
+    uint32_t score;
+    char unk1[100];
+    float slowdown;
+    uint32_t stage_count;
+    uint32_t shot;
+    uint32_t subshot;
+    uint32_t difficulty;
+    uint32_t cleared;
+    char unk2[4];
+    int32_t spell_practice_id;
+};
+
+struct th17_replay_stage_t {
+    uint16_t stage;
+    uint16_t rng;
+    uint32_t frame_count;
+    uint32_t end_off; // Relative to the start of this structure!!!
+    uint32_t pos_subpixel[2];
     uint32_t stage_num;
     uint32_t field_4;
     uint32_t chapter;
@@ -620,90 +640,66 @@ struct th17_stage_global_t {
     uint32_t field_E0;
     uint32_t field_E4;
     uint32_t hyper_flags;
-};
-
-struct th17_replay_t {
-    char name[16];
-    uint64_t timestamp;
-    uint32_t score;
-    char unk1[100];
-    float slowdown;
-    uint32_t stage_count;
-    uint32_t shot;
-    uint32_t subshot;
-    uint32_t difficulty;
-    uint32_t cleared;
-    char unk2[4];
-    int32_t spell_practice_id;
-};
-
-struct th17_replay_stage_t {
-    uint16_t stage;
-    uint16_t rng;
-    uint32_t frame_count;
-    uint32_t end_off; // Relative to the start of this structure!!!
-    uint32_t pos_subpixel[2];
-    th17_stage_global_t stagedata;
     uint32_t player_is_focused;
     uint32_t spellcard_real_times[21];
 };
 
 struct th18_stage_global_t {
-  uint32_t stage_num;
-  uint32_t _stage_num;
-  uint32_t field_8;
-  uint32_t stage_time[3];
-  uint32_t shot;
-  uint32_t subshot;
-  uint32_t score;
-  uint32_t difficulty;
-  uint32_t continues;
-  uint32_t field_2C;
-  uint32_t graze;
-  uint32_t field_34;
-  int32_t spell_practice_id;
-  uint32_t miss_count;
-  uint32_t field_40;
-  uint32_t money_collected;
-  uint32_t piv;
-  uint32_t piv_min;
-  uint32_t piv_max;
-  uint8_t unk1[8];
-  uint32_t power;
-  uint32_t power_max;
-  uint32_t power_levelup;
-  uint32_t field_60;
-  uint32_t lives;
-  uint32_t life_pieces;
-  uint32_t field_6C;
-  uint32_t field_70;
-  uint32_t bombs;
-  uint32_t bomb_pieces;
-  uint32_t bomb_restock_on_death;
-  uint8_t unk0[72];
-  th_timer_t field_C4;
-  th_timer_t field_D8;
-  uint8_t unk2[4];
+    uint32_t stage_num;
+    uint32_t _stage_num;
+    uint32_t field_8;
+    uint32_t stage_time[3];
+    uint32_t shot;
+    uint32_t subshot;
+    uint32_t score;
+    uint32_t difficulty;
+    uint32_t continues;
+    uint32_t field_2C;
+    uint32_t graze;
+    uint32_t field_34;
+    int32_t spell_practice_id;
+    uint32_t miss_count;
+    uint32_t field_40;
+    uint32_t money_collected;
+    uint32_t piv;
+    uint32_t piv_min;
+    uint32_t piv_max;
+    uint8_t unk1[8];
+    uint32_t power;
+    uint32_t power_max;
+    uint32_t power_levelup;
+    uint32_t field_60;
+    uint32_t lives;
+    uint32_t life_pieces;
+    uint32_t field_6C;
+    uint32_t field_70;
+    uint32_t bombs;
+    uint32_t bomb_pieces;
+    uint32_t bomb_restock_on_death;
+    uint8_t unk0[72];
+    th_timer_t field_C4;
+    th_timer_t field_D8;
+    uint8_t unk2[4];
 };
 
 /* 111 */
 struct th18_replay_stage_t {
-  uint16_t stage;
-  uint16_t rng;
-  uint32_t framecount;
-  uint32_t end_off; // Relative to the start of this structure!!!
-  uint32_t pos_subpixel[2];
-  uint32_t player_is_focused;
-  uint32_t spellcard_real_times[20];
-  th18_stage_global_t stagedata;
-  int32_t cards[256];
-  uint32_t cards_param[256];
-  uint32_t card_active;
-  th18_stage_global_t stagedata_end;
-  int32_t cards_end[256];
-  uint32_t cards_param_end[256];
-  uint32_t card_active_end;
-  uint32_t player_is_focused_end;
+    uint16_t stage;
+    uint16_t rng;
+    uint32_t framecount;
+    uint32_t end_off; // Relative to the start of this structure!!!
+    uint32_t pos_subpixel[2];
+    uint32_t player_is_focused;
+    uint32_t spellcard_real_times[20];
+    th18_stage_global_t stagedata;
+    int32_t cards[256];
+    uint32_t cards_param[256];
+    uint32_t card_active;
+    th18_stage_global_t stagedata_end;
+    int32_t cards_end[256];
+    uint32_t cards_param_end[256];
+    uint32_t card_active_end;
+    uint32_t player_is_focused_end;
 };
 
 struct th18_replay_t

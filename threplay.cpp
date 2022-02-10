@@ -44,7 +44,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	for(int i = 0, h = 0; i < 7; i++) {
 		if(rep->stage_offsets[i] & rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
 			Napi::Object stage_ = Napi::Object::New(env);
-			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + stage_off);
+			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + rep->stage_offsets[i]);
 				
 			stage_.Set("stage", i + 1);
 			stage_.Set("score", stage->score);
@@ -115,7 +115,7 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			} else {
 				bool found = false;
 				for(int j = 1; j <= i; j++) {
-					if(rep_raw->stage_offsets[i - j]) {
+					if(header->stage_offsets[i - j]) {
 						uint32_t stage_off = header->stage_offsets[i - j];
 						if(stage_off && stage_off + sizeof(th07_replay_stage_t) < header->size) {
 							th07_replay_stage_t* s_ = (th07_replay_stage_t*)(rep_dec + stage_off);
@@ -187,7 +187,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("name", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("name", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 				
 				//	"Play Time"
@@ -196,7 +196,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("date", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("date", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 				
 				//	"Name    "
@@ -206,9 +206,9 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
 					rep_raw[user_offset + l] = 0;
-					const char* _ = th08_shots[std::string_view(&rep_raw[user_offset])];
+					const char* _ = th08_shots[std::string_view((char*)&rep_raw[user_offset])];
 					if(!_) {
-						user.Set("shot", Napi::Buffer<char>::New(env, &rep_raw[user_offset], l));
+						user.Set("shot", Napi::Buffer<char>::New(env, (char*)&rep_raw[user_offset], l));
 					} else {
 						user.Set("shot", _);
 					}
@@ -220,7 +220,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("score", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("score", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 				
 				//	"Level"
@@ -229,7 +229,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("difficulty", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("difficulty", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 				
 				//	eol
@@ -238,7 +238,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("stage", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("stage", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 
 				//	"Mistakes"
@@ -247,7 +247,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("misses", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("misses", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 
 				//	"Bombed"
@@ -256,7 +256,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("bombs", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("bombs", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 
 				//	"Framerate"
@@ -265,7 +265,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 
 				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len; crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
 				if(user_offset + l <= len) {
-					user.Set("slowdown", Napi::String::New(env, &rep_raw[user_offset], l));
+					user.Set("slowdown", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
 				}
 
 				//	"Lives"
@@ -286,7 +286,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 					user.Set("version", Napi::String::New(env, (const char*)&rep_raw[user_offset], l));
 				}
 
-				out.set("user", user);
+				out.Set("user", user);
 			}
 		} // else skip userdata
 	}	//	else skip userdata section
@@ -321,7 +321,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			}
 
 			//	bounds check
-			if(header->stage_offsets[i] && header->stage_offsets + sizeof(th08_replay_stage_t) < header->size) {
+			if(header->stage_offsets[i] && header->stage_offsets[i] + sizeof(th08_replay_stage_t) < header->size) {
 				Napi::Object stage_ = Napi::Object::New(env);
 				th08_replay_stage_t* stage = (th08_replay_stage_t*)(rep_dec + header->stage_offsets[i]);
 					
@@ -337,7 +337,7 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 				} else {
 					bool found = false;
 					for(int j = 1; j <= i; j++) {
-						if(rep_raw->stage_offsets[i - j]) {
+						if(header->stage_offsets[i - j]) {
 							uint32_t stage_off = header->stage_offsets[i - j];
 							if(stage_off && stage_off + sizeof(th08_replay_stage_t) < header->size) {
 								th08_replay_stage_t* s_ = (th08_replay_stage_t*)(rep_dec + stage_off);
@@ -782,17 +782,17 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("slowdown", rep->slowdown);
 	out.Set("cleared", rep->cleared);
 	
-	const char* charas[] = {
+	const char* shots[] = {
 		"Reimu",
 		"Marisa",
 		"Sakuya",
 		"Sanae"
 	};
 	
-	if(rep->chara > 4) {
-		out.Set("chara", rep->chara);
+	if(rep->shot > 4) {
+		out.Set("chara", rep->shot);
 	} else {
-		out.Set("chara", charas[rep->chara]);	
+		out.Set("chara", shots[rep->shot]);	
 	}
 	
 	Napi::Array stages = Napi::Array::New(env);
@@ -806,16 +806,16 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			return;
 		}
 				
-		stage_.Set("stage", stage->stage_num);
-		stage_.Set("score", (uint64_t)stage->score * 10);
-		stage_.Set("graze", stage->graze);
-		stage_.Set("misses", stage->miss_count);
-		stage_.Set("piv", stage->piv);
-		stage_.Set("power", stage->power);
-		stage_.Set("lives", stage->lives);
-		stage_.Set("life_pieces", stage->life_pieces);
-		stage_.Set("bombs", stage->bombs);
-		stage_.Set("bomb_pieces", stage->bomb_pieces);
+		stage_.Set("stage", stage->stagedata.stage_num);
+		stage_.Set("score", (uint64_t)stage->stagedata.score * 10);
+		stage_.Set("graze", stage->stagedata.graze);
+		stage_.Set("misses", stage->stagedata.miss_count);
+		stage_.Set("piv", stage->stagedata.piv);
+		stage_.Set("power", stage->stagedata.power);
+		stage_.Set("lives", stage->stagedata.lives);
+		stage_.Set("life_pieces", stage->stagedata.life_pieces);
+		stage_.Set("bombs", stage->stagedata.bombs);
+		stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
 		
 		Napi::Array cards = Napi::Array::New(env);
 		for(int i = 0; i < 256; i++) {
