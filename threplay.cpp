@@ -63,6 +63,8 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("gameid", 1);
 
+	if(len < sizeof(th07_replay_header_t)) return;
+
 	uint8_t *rep_raw = (uint8_t*)malloc(len);
 	memcpy(rep_raw, buf, len);
 
@@ -166,17 +168,17 @@ std::unordered_map<std::string_view, const char*> th08_shots {
 void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	out.Set("gameid", 2);
 
+	if(len < sizeof(th08_replay_header_t)) return;
+
 	uint8_t* rep_raw = (uint8_t*)malloc(len);
 	memcpy(rep_raw, buf, len);
 
-	if(len < sizeof(th08_replay_header_t)) return;
 	th08_replay_header_t *header = (th08_replay_header_t*)rep_raw;
 	if(header->comp_size + sizeof(th_replay_userdata_header_t) <= len) {
 		th_replay_userdata_header_t *userdata = (th_replay_userdata_header_t*)&rep_raw[header->comp_size];
 		if(header->comp_size + userdata->length <= len) {
 			//	process userdata
-			uint32_t magic = *(uint32_t*)&rep_raw[user_offset + 4];
-			if(magic == 0x52455355) {
+			if(userdata->magic == 0x52455355) {
 				Napi::Object user = Napi::Object::New(env);
 
 				//	USER struct + "Player Name"
