@@ -42,7 +42,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	Napi::Array stages = Napi::Array::New(env);
 	
 	for(int i = 0, h = 0; i < 7; i++) {
-		if(rep->stage_offsets[i] & rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
+		if(rep->stage_offsets[i] && rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
 			Napi::Object stage_ = Napi::Object::New(env);
 			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + rep->stage_offsets[i]);
 				
