@@ -9,7 +9,8 @@
 	"gypfile": true,
 	"scripts": {
 		"make-debug": "cmake-js compile -D --CDCMAKE_CXX_FLAGS=\"-Og -g -Wall\"",
-		"make-release": "cmake-js compile --CDCMAKE_CXX_FLAGS=\"-w -O3\"",
+		"make-release": "cmake-js compile -R --CDCMAKE_CXX_FLAGS=\"-w -O3\"",
+		"make-clean": "cmake-js clean",
 		"start": "node test.js",
 		"build:dev": "node-gyp build --debug",
 		"build": "node-gyp build",
