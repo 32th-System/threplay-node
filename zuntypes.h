@@ -80,12 +80,11 @@ struct th07_replay_stage_t {
     uint32_t graze;
     uint32_t unknown;
     uint32_t unknown2;
-    uint32_t unknown3;
-    uint16_t unknown4;
+    uint16_t unknown3;
     uint8_t power;
     uint8_t lives;
     uint8_t bombs;
-    uint8_t unknown5;
+    uint8_t unknown4;
 
 };
 
