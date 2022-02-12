@@ -14,10 +14,6 @@ add_library(${PROJECT_NAME} SHARED replay_decode.cpp threplay.cpp ${CMAKE_JS_SRC
 target_compile_options(${PROJECT_NAME} PUBLIC -fno-exceptions)
 target_compile_definitions(${PROJECT_NAME} PUBLIC NAPI_DISABLE_CPP_EXCEPTIONS)
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_options(${PROJECT_NAME} PUBLIC -Og -g -Wall -Wformat)
-endif()
-
 # This line will give our library file a .node extension without any "lib" prefix
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 

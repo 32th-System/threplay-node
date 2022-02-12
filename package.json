@@ -8,7 +8,8 @@
 	},
 	"gypfile": true,
 	"scripts": {
-		"install": "cmake-js compile -D",
+		"make-debug": "cmake-js compile -D --CDCMAKE_CXX_FLAGS=\"-Og -g -Wall\"",
+		"make-release": "cmake-js compile --CDCMAKE_CXX_FLAGS=\"-w -O3\"",
 		"start": "node test.js",
 		"build:dev": "node-gyp build --debug",
 		"build": "node-gyp build",
