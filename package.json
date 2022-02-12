@@ -4,7 +4,8 @@
 	"description": "Node.js Addons Example #2",
 	"dependencies": {
 		"node-addon-api": "^1.7.2",
-		"node-gyp": "^8.4.1"
+		"node-gyp": "^8.4.1",
+		"prompt-sync": "^4.1.6"
 	},
 	"gypfile": true,
 	"scripts": {
