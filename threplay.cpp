@@ -32,6 +32,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	if(rep->name[8] != '\0') rep->name[8] = '\0';
 	out.Set("name", rep->name);
 	char date[11] = "2000-01-01";
+	memcpy(date+2, &rep->date[6], 2);
 	memcpy(date+5, rep->date, 2);
 	memcpy(date+8, &rep->date[3], 2);
 	out.Set("date", date);
@@ -42,18 +43,21 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	Napi::Array stages = Napi::Array::New(env);
 	
 	for(int i = 0, h = 0; i < 7; i++) {
-		if(rep->stage_offsets[i] && rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
-			Napi::Object stage_ = Napi::Object::New(env);
-			th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + rep->stage_offsets[i]);
-				
-			stage_.Set("stage", i + 1);
-			stage_.Set("score", stage->score);
-			stage_.Set("power", stage->power);
-			stage_.Set("lives", stage->lives);
-			stage_.Set("bombs", stage->bombs);
+		if(rep->stage_offsets[i]) {
+			rep->stage_offsets[i] -= 15;
+			if(rep->stage_offsets[i] + sizeof(th06_replay_stage_t) < size) {
+				Napi::Object stage_ = Napi::Object::New(env);
+				th06_replay_stage_t* stage = (th06_replay_stage_t*)(rep_dec + rep->stage_offsets[i]);
+					
+				stage_.Set("stage", i + 1);
+				stage_.Set("score", stage->score);
+				stage_.Set("power", stage->power);
+				stage_.Set("lives", stage->lives);
+				stage_.Set("bombs", stage->bombs);
 
-			stages.Set(h, stage_);
-			h++;
+				stages.Set(h, stage_);
+				h++;
+			}
 		}
 	}
 	out.Set("stages", stages);	
@@ -893,7 +897,7 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
-	exports.Set(Napi::String::New(env, "get_replay_data"),
+	exports.Set("get_replay_data",
 				Napi::Function::New(env, get_replay_data));
 	return exports;
 }
