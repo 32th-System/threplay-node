@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project (thjson)
+project (threplay)
 
 # this shit copied and modified from
 # https://gauriatiq.medium.com/c-native-addon-independent-of-node-js-version-using-napi-node-addon-api-and-cmake-53315582cbd1
