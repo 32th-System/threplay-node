@@ -6,6 +6,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <iostream>
+
 unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length);
 void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned char base, unsigned char add);
 unsigned int th_unlzss(unsigned char * buffer, unsigned char * decode, unsigned int length);
@@ -299,19 +301,19 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	uint8_t* rep_dec = (uint8_t*)malloc(header->size);
 	th_unlzss(rep_raw + sizeof(th08_replay_header_t), rep_dec, header->comp_size - sizeof(th08_replay_header_t));
 
-	if(header->size < sizeof(th08_replay_t)) {
+	if(header->size >= sizeof(th08_replay_t)) {
 		th08_replay_t* rep = (th08_replay_t*)rep_dec;
 		
 		out.Set("shot", rep->shot);
 		out.Set("difficulty", rep->difficulty);
 
 		if(rep->name[8] != '\0') rep->name[8] = '\0';
-		out.Set("name", Napi::String::New(env, (const char*)&rep->name, 9));
+		out.Set("name", Napi::String::New(env, (const char*)&rep->name, 8));
 
 		char date[11] = "2000-01-01";
 		memcpy(date+5, rep->date, 2);
 		memcpy(date+8, &rep->date[3], 2);
-		out.Set("date", Napi::String::New(env, date, 11));
+		out.Set("date", Napi::String::New(env, date, 10));
 
 		uint8_t th08_stagenum_real[] = {
 			1, 2, 3, 4, 4, 5, 6, 6, 7
