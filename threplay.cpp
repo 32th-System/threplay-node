@@ -6,7 +6,6 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <iostream>
 
 unsigned int th06_decrypt(unsigned char* buf, char key, unsigned int length);
 void th_decrypt(unsigned char * buffer, int length, int block_size, unsigned char base, unsigned char add);
@@ -373,6 +372,160 @@ void get_th08(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 		}
 		out.Set("stages", stages);	
 	}	//	else dont process stages
+	free(rep_dec);
+	free(rep_raw);
+	return;
+}
+
+void get_th09(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
+	out.Set("gameid", 3);
+
+	if(len < sizeof(th09_replay_header_t)) return;
+
+	uint8_t* rep_raw = (uint8_t*)malloc(len);
+	memcpy(rep_raw, buf, len);
+
+	th09_replay_header_t *header = (th09_replay_header_t*)rep_raw;
+	if(header->comp_size + sizeof(th_replay_userdata_header_t) <= len) {
+		th_replay_userdata_header_t *userdata = (th_replay_userdata_header_t*)&rep_raw[header->comp_size];
+		if(header->comp_size + userdata->length <= len) {
+			if(userdata->magic == 0x52455355) {
+				Napi::Object user = Napi::Object::New(env);
+				uint32_t user_offset = header->comp_size + 25;
+				uint32_t l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("name", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 13 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("date", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 10 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("difficulty", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 10 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("stage", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 30 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("handicap", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 21 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("version", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				out.Set("user", user);
+			}
+		}
+	}
+
+	th06_decrypt(rep_raw + 24,header->key, header->comp_size - 24);
+	uint8_t *rep_dec = (uint8_t*)malloc(header->size);
+	th_unlzss(rep_raw + sizeof(th09_replay_header_t), rep_dec, header->comp_size - sizeof(th09_replay_header_t));
+
+	if(header->size >= sizeof(th09_replay_t)) {
+		th09_replay_t *rep = (th09_replay_t*)rep_dec;
+		out.Set("difficulty", rep->difficulty);
+
+		char date[11] = "2000-01-01";
+		memcpy(date+2, rep->date, 2);
+		memcpy(date+5, &rep->date[3], 2);
+		memcpy(date+8, &rep->date[6], 2);
+		out.Set("date", Napi::String::New(env, date, 10));
+
+		if(rep->name[8] != '\0') rep->name[8] = '\0';
+		out.Set("name", Napi::String::New(env, (const char*)&rep->name, 8));
+
+		Napi::Array stages = Napi::Array::New(env);
+		if(header->stage_offsets[9] == 0) {
+			//	story mode
+			for(int i = 0, h = 0; i < 9; i++) {
+				if(header->stage_offsets[i]) {
+					// header->stage_offsets[i] -= sizeof(th09_replay_header_t);
+					//	unsure if struct size is correct, so just gonna use an offset
+					header->stage_offsets[i] -= 192;
+				}
+
+				if(header->stage_offsets[i] && header->stage_offsets[i] + sizeof(th09_replay_stage_t) < header->size && header->stage_offsets[i + 10] + sizeof(th09_replay_stage_t) < header->size) {
+					Napi::Object stage = Napi::Object::New(env);
+					
+					stage.Set("stage", i + 1);
+					
+					th09_replay_stage_t *stage_pl = (th09_replay_stage_t*)&rep_dec[header->stage_offsets[i]];
+					th09_replay_stage_t *stage_cpu = (th09_replay_stage_t*)&rep_dec[header->stage_offsets[i + 10]];
+
+					Napi::Object player = Napi::Object::New(env);
+					player.Set("score", (uint64_t)stage_pl->score * 10);
+					player.Set("shot", stage_pl->shot);
+					player.Set("lives", stage_pl->lives);
+					stage.Set("player", player);
+
+					Napi::Object cpu = Napi::Object::New(env);
+					cpu.Set("score", (uint64_t)stage_cpu->score * 10);
+					cpu.Set("shot", stage_cpu->shot);
+					cpu.Set("lives", stage_cpu->lives);
+					stage.Set("cpu", cpu);
+
+					stages.Set(h, stage);
+					h++;
+
+				}
+			}
+		} else {
+			if(header->stage_offsets[9] + sizeof(th09_replay_stage_t) < header->size && header->stage_offsets[19] + sizeof(th09_replay_stage_t) < header->size) {
+				Napi::Object stage = Napi::Object::New(env);
+
+				stage.Set("stage", 0);
+
+				th09_replay_stage_t *player1 = (th09_replay_stage_t*)&rep_dec[header->stage_offsets[9]];
+				th09_replay_stage_t *player2 = (th09_replay_stage_t*)&rep_dec[header->stage_offsets[19]];
+
+				Napi::Object player1_o = Napi::Object::New(env);
+				player1_o.Set("score", (uint64_t)player1->score * 10);
+				player1_o.Set("shot", player1->shot);
+				player1_o.Set("cpu", player1->ai);
+				stage.Set("player1", player1_o);
+
+				Napi::Object player2_o = Napi::Object::New(env);
+				player2_o.Set("score", (uint64_t)player2->score * 10);
+				player2_o.Set("shot", player2->shot);
+				player2_o.Set("cpu", player2->ai);
+				stage.Set("player2", player2_o);
+
+				stages.Set(0u, stage);
+			}
+			//	vs mode
+
+
+		}
+		out.Set("stages", stages);
+	}
+
 	free(rep_dec);
 	free(rep_raw);
 	return;
@@ -864,6 +1017,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 		break;
 	case 0x50523854: // "T8RP"
 		get_th08(ret, buf, len, env);
+		break;
+	case 0x50523954: // "T9RP"
+		get_th09(ret, buf, len, env);
 		break;
 	case 0x72333174: // "t13r"
 		_ver = buf[_th13_rep->userdata_offset + 16];
