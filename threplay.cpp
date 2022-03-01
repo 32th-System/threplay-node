@@ -444,7 +444,22 @@ void get_th09(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 		}
 	}
 
-	th06_decrypt(rep_raw + 24,header->key, header->comp_size - 24);
+	// th06_decrypt(rep_raw + 24,header->key, header->comp_size - 24);
+	th06_decrypt(rep_raw + 24,rep_raw[0x15], header->comp_size - 24);
+
+	/*
+		These two lines are the same thing.
+		header->key is a uint8_t located at offset 21
+		header = rep_raw
+		0x15 = 21
+		but they are not the same thing
+		why
+		how
+
+	*/
+
+
+
 	uint8_t *rep_dec = (uint8_t*)malloc(header->size);
 	th_unlzss(rep_raw + sizeof(th09_replay_header_t), rep_dec, header->comp_size - sizeof(th09_replay_header_t));
 
@@ -469,6 +484,7 @@ void get_th09(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 					// header->stage_offsets[i] -= sizeof(th09_replay_header_t);
 					//	unsure if struct size is correct, so just gonna use an offset
 					header->stage_offsets[i] -= 192;
+					header->stage_offsets[i+10] -= 192;
 				}
 
 				if(header->stage_offsets[i] && header->stage_offsets[i] + sizeof(th09_replay_stage_t) < header->size && header->stage_offsets[i + 10] + sizeof(th09_replay_stage_t) < header->size) {
