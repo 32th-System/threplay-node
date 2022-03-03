@@ -158,10 +158,10 @@ struct th09_replay_stage_t {
 struct th10_replay_header_t {
     uint32_t magic;
     uint32_t version;   //  i assume, please doublecheck
+    uint32_t unknown;
     uint32_t user_offset;
-    uint32_t comp_size;
     char ignore2[12];    //  document later
-    uint32_t filelength;
+    uint32_t comp_size;
     uint32_t size;
     //  compressed data begins at offset 36
 };
