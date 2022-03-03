@@ -513,7 +513,13 @@ void get_th09(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 				}
 			}
 		} else {
+			//	vs mode
 			if(header->stage_offsets[9] + sizeof(th09_replay_stage_t) < header->size && header->stage_offsets[19] + sizeof(th09_replay_stage_t) < header->size) {
+				
+				//	ssame as in story mode
+				if(header->stage_offsets[9]) header->stage_offsets[9] -=192;
+				if(header->stage_offsets[19]) header->stage_offsets[19] -=192;
+				
 				Napi::Object stage = Napi::Object::New(env);
 
 				stage.Set("stage", 0);
@@ -535,7 +541,6 @@ void get_th09(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 
 				stages.Set(0u, stage);
 			}
-			//	vs mode
 
 
 		}
