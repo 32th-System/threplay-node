@@ -1037,20 +1037,20 @@ void get_th17(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 			// out.Set("invalid", "stage data out of bounds");
 			// return;
 		} else {
-			stage_.Set("stage", stage->stage_num);
-			stage_.Set("score", (uint64_t)stage->score * 10);
-			stage_.Set("graze", stage->graze);
-			stage_.Set("misscount", stage->miss_count);
-			stage_.Set("piv", stage->piv);
-			stage_.Set("power", stage->power);
-			stage_.Set("lives", stage->lives);
-			stage_.Set("life_pieces", stage->life_pieces);
-			stage_.Set("bombs", stage->bombs);
-			stage_.Set("bomb_pieces", stage->bomb_pieces);
+			stage_.Set("stage", stage->stagedata.stage_num);
+			stage_.Set("score", (uint64_t)stage->stagedata.score * 10);
+			stage_.Set("graze", stage->stagedata.graze);
+			stage_.Set("misscount", stage->stagedata.miss_count);
+			stage_.Set("piv", stage->stagedata.piv);
+			stage_.Set("power", stage->stagedata.power);
+			stage_.Set("lives", stage->stagedata.lives);
+			stage_.Set("life_pieces", stage->stagedata.life_pieces);
+			stage_.Set("bombs", stage->stagedata.bombs);
+			stage_.Set("bomb_pieces", stage->stagedata.bomb_pieces);
 			
 			Napi::Array tokens = Napi::Array::New(env);
 			for(uint32_t j = 0; j < 5; j++) {
-				tokens.Set(j, stage->tokens[j]);
+				tokens.Set(j, stage->stagedata.tokens[j]);
 			}
 			stage_.Set("tokens", tokens);
 			
@@ -1101,9 +1101,9 @@ void get_th18(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	};
 	
 	if(rep->shot > 4) {
-		out.Set("chara", rep->shot);
+		out.Set("shot", rep->shot);
 	} else {
-		out.Set("chara", shots[rep->shot]);	
+		out.Set("shot", shots[rep->shot]);	
 	}
 	
 	Napi::Array stages = Napi::Array::New(env);

@@ -3,6 +3,29 @@
 
 #include <stdint.h>
 
+#define ZUN_TH07_HEADER_OFFSET 84;
+#define ZUN_TH08_HEADER_OFFSET 104;
+#define ZUN_TH09_HEADER_OFFSET 192;
+#define ZUN_TH10_STAGE_BEGIN 0x64;
+#define ZUN_TH10_STAGE_OFFSET 0x1c4;
+#define ZUN_TH11_STAGE_BEGIN 0x70;
+#define ZUN_TH11_STAGE_OFFSET 0x90;
+#define ZUN_TH12_STAGE_BEGIN 0x70;
+#define ZUN_TH12_STAGE_OFFSET 0xa0;
+#define ZUN_TH13_STAGE_BEGIN 0x74;
+#define ZUN_TH13_STAGE_OFFSET 0xc4;
+#define ZUN_TH14_STAGE_BEGIN 0x94;
+#define ZUN_TH14_STAGE_OFFSET 0xdc;
+#define ZUN_TH15_STAGE_BEGIN 0xa4;
+#define ZUN_TH15_STAGE_OFFSET 0x238;
+#define ZUN_TH16_STAGE_BEGIN 0xa0;
+#define ZUN_TH16_STAGE_OFFSET 0x294;
+#define ZUN_TH17_STAGE_BEGIN 160;
+#define ZUN_TH17_STAGE_OFFSET 344;
+#define ZUN_TH18_STAGE_BEGIN 200;
+#define ZUN_TH18_STAGE_OFFSET 4716;
+
+
 #pragma pack(push,1)
 
 struct th_timer_t {
@@ -80,11 +103,11 @@ struct th07_replay_stage_t {
     uint32_t graze;
     uint32_t unknown;
     uint32_t unknown2;
-    uint16_t unknown3;
+    uint16_t unknown4;
     uint8_t power;
     uint8_t lives;
     uint8_t bombs;
-    uint8_t unknown4;
+    uint8_t unknown5;
 
 };
 
@@ -573,27 +596,7 @@ struct th165_replay_t {
     uint32_t scene;
 };
 
-struct th17_replay_t {
-    char name[16];
-    uint64_t timestamp;
-    uint32_t score;
-    char unk1[100];
-    float slowdown;
-    uint32_t stage_count;
-    uint32_t shot;
-    uint32_t subshot;
-    uint32_t difficulty;
-    uint32_t cleared;
-    char unk2[4];
-    int32_t spell_practice_id;
-};
-
-struct th17_replay_stage_t {
-    uint16_t stage;
-    uint16_t rng;
-    uint32_t frame_count;
-    uint32_t end_off; // Relative to the start of this structure!!!
-    uint32_t pos_subpixel[2];
+struct th17_stage_global_t {
     uint32_t stage_num;
     uint32_t field_4;
     uint32_t chapter;
@@ -639,6 +642,30 @@ struct th17_replay_stage_t {
     uint32_t field_E0;
     uint32_t field_E4;
     uint32_t hyper_flags;
+};
+
+struct th17_replay_t {
+    char name[16];
+    uint64_t timestamp;
+    uint32_t score;
+    char unk1[100];
+    float slowdown;
+    uint32_t stage_count;
+    uint32_t shot;
+    uint32_t subshot;
+    uint32_t difficulty;
+    uint32_t cleared;
+    char unk2[4];
+    int32_t spell_practice_id;
+};
+
+struct th17_replay_stage_t {
+    uint16_t stage;
+    uint16_t rng;
+    uint32_t frame_count;
+    uint32_t end_off; // Relative to the start of this structure!!!
+    uint32_t pos_subpixel[2];
+    th17_stage_global_t stagedata;
     uint32_t player_is_focused;
     uint32_t spellcard_real_times[21];
 };
