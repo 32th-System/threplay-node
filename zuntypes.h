@@ -228,7 +228,8 @@ struct th11_replay_t {
     char name[12];  //  4 nulls at end
     uint64_t time;  //  its a 32-bit time_t value but there's no standard definition for that
     uint32_t score;
-    char unknown2[64];
+    char unknown2[60];
+    float slowdown;
     uint32_t stagecount;
     uint32_t unknown3;
     uint32_t shot;
