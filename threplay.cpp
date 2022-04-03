@@ -787,7 +787,7 @@ void get_th11(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 		out.Set("difficulty", rep->difficulty);
 
 		Napi::Array stages = Napi::Array::New(env);
-		uint32_t next_stage_offset = 0x64;
+		uint32_t next_stage_offset = ZUN_TH11_STAGE_BEGIN;
 		for(int i = 0, h = 0; i < rep->stagecount; i++) {
 			if(next_stage_offset + sizeof(th11_replay_stage_t) < header->size) {
 				Napi::Object stage_ = Napi::Object::New(env);
@@ -801,7 +801,7 @@ void get_th11(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 				stage_.Set("life_pieces", stage->life_pieces);
 
 
-				next_stage_offset += stage->next_stage_offset + 0x90;
+				next_stage_offset += stage->next_stage_offset + ZUN_TH11_STAGE_OFFSET;
 				stages.Set(h, stage_);
 				h++;
 			}
@@ -1307,6 +1307,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	case 0x72303174: // "t10r"
 		get_th10(ret, buf, len, env);
 		break;
+	case 0x72313174: // "t11r"
+	    get_th11(ret, buf, len, env);
+	    break;
 	case 0x72333174: // "t13r"
 		_ver = buf[_th13_rep->userdata_offset + 16];
 		if(_ver == 0x90) {			
