@@ -788,7 +788,7 @@ void get_th11(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 
 		Napi::Array stages = Napi::Array::New(env);
 		uint32_t next_stage_offset = ZUN_TH11_STAGE_BEGIN;
-		for(int i = 0, h = 0; i < rep->stagecount; i++) {
+		for(unsigned int i = 0, h = 0; i < rep->stagecount; i++) {
 			if(next_stage_offset + sizeof(th11_replay_stage_t) < header->size) {
 				Napi::Object stage_ = Napi::Object::New(env);
 				th11_replay_stage_t *stage = (th11_replay_stage_t*)(rep_dec + next_stage_offset);
@@ -802,6 +802,143 @@ void get_th11(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
 
 
 				next_stage_offset += stage->next_stage_offset + ZUN_TH11_STAGE_OFFSET;
+				stages.Set(h, stage_);
+				h++;
+			}
+		}
+		out.Set("stages", stages);	
+	}
+	free(rep_raw);
+	free(rep_dec);
+	return;
+
+}
+
+void get_th12(Napi::Object &out, uint8_t *buf, size_t len, Napi::Env &env) {
+	out.Set("gameid", 7);
+
+	if(len < sizeof(th12_replay_header_t)) return;
+
+	uint8_t *rep_raw = (uint8_t*)malloc(len);
+	memcpy(rep_raw, buf, len);
+
+	th12_replay_header_t *header = (th12_replay_header_t*)rep_raw;
+	if(header->user_offset + sizeof(th_replay_userdata_header_t) <= len) {
+		th_replay_userdata_header_t *userdata = (th_replay_userdata_header_t*)&rep_raw[header->user_offset];
+		if(header->user_offset + userdata->length <= len) {
+			if(userdata->magic == USERDATA_MAGIC) {
+				Napi::Object user = Napi::Object::New(env);
+				uint32_t user_offset = header->user_offset + 4;
+				uint32_t l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				//	SJIS, 東方XYZ リプレイファイル情報, Touhou XYZ replay file info
+
+				user_offset += 2 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("version", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 7 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("name", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 7 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("date", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 8 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("shot", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 7 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("difficulty", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 2 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					user.Set("stage", Napi::String::New(env, (char*)&rep_raw[user_offset], l));
+				}
+
+				user_offset += 8 + l;
+				l = 0;
+
+				for(uint16_t crlf = *(uint16_t*)&rep_raw[user_offset + l]; crlf!=0x0a0d && user_offset + l <= len;crlf = *(uint16_t*)&rep_raw[user_offset + ++l]);
+				if(user_offset + l <= len) {
+					char *score = new char[l + 2];
+					memcpy(score, &rep_raw[user_offset], l);
+					score[l] = '0';
+					score[l + 1] = '\0';
+					user.Set("score", Napi::String::New(env, score, l + 1));
+					delete[] score;
+				}
+
+				out.Set("user", user);
+			}
+		}
+	}
+
+	//	compressed data starts at 0x24
+	uint8_t *rep_dec = (uint8_t*)malloc(header->size);
+	th_decrypt(rep_raw + 0x24, header->comp_size, 0x800, 0x5e, 0xe1);
+	th_decrypt(rep_raw + 0x24, header->comp_size, 0x40, 0x7d, 0x3a);
+	th_unlzss(rep_raw + 0x24, rep_dec, header->comp_size);
+
+	if(header->size >= sizeof(th12_replay_t)) {
+		th12_replay_t  *rep = (th12_replay_t*)rep_dec;
+
+		rep->name[11] = '\0';
+		out.Set("name", rep->name);
+		out.Set("timestamp", rep->time);
+		out.Set("slowdown", rep->slowdown);
+		out.Set("score", (uint64_t)rep->score * 10);
+		out.Set("shot", rep->shot);
+		out.Set("difficulty", rep->difficulty);
+
+		Napi::Array stages = Napi::Array::New(env);
+		uint32_t next_stage_offset = ZUN_TH12_STAGE_BEGIN;
+		for(unsigned int i = 0, h = 0; i < rep->stagecount; i++) {
+			if(next_stage_offset + sizeof(th12_replay_stage_t) < header->size) {
+				Napi::Object stage_ = Napi::Object::New(env);
+				th12_replay_stage_t *stage = (th12_replay_stage_t*)(rep_dec + next_stage_offset);
+
+				stage_.Set("stage", stage->stage);
+				stage_.Set("score", (uint64_t)stage->score * 10);
+				stage_.Set("power", stage->power);
+				stage_.Set("piv", stage->piv);
+				stage_.Set("lives", stage->lives);
+				stage_.Set("life_pieces", stage->life_pieces);
+				stage_.Set("bombs", stage->bombs);
+				stage_.Set("bomb_pieces", stage->bomb_pieces);
+				stage_.Set("graze", stage->graze);
+				stage_.Set("ufo1", stage->ufo_1);
+				stage_.Set("ufo2", stage->ufo_2);
+				stage_.Set("ufo3", stage->ufo_3);
+
+
+				next_stage_offset += stage->next_stage_offset + ZUN_TH12_STAGE_OFFSET;
 				stages.Set(h, stage_);
 				h++;
 			}
@@ -1310,6 +1447,9 @@ Napi::Value get_replay_data(const Napi::CallbackInfo& info) {
 	case 0x72313174: // "t11r"
 	    get_th11(ret, buf, len, env);
 	    break;
+    case 0x72323174: // "t12r"
+        get_th12(ret, buf, len, env);
+        break;
 	case 0x72333174: // "t13r"
 		_ver = buf[_th13_rep->userdata_offset + 16];
 		if(_ver == 0x90) {			
