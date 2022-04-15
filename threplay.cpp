@@ -19,7 +19,7 @@ void get_th06(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	th06_replay_header_t* rep_raw = (th06_replay_header_t*)buf;
 
 	char ver[5] = "    ";
-	snprintf(ver, 5, "%.2hhx%.2hhx", rep_raw->version[0], rep_raw->version[1]);
+	snprintf(ver, 4, "%.2hhx%.2hhx", rep_raw->version[0], rep_raw->version[1]);
 	out.Set("version", ver);
 	out.Set("shot", rep_raw->shot);
 	out.Set("difficulty", rep_raw->difficulty);
@@ -77,7 +77,7 @@ void get_th07(Napi::Object& out, uint8_t* buf, size_t len, Napi::Env& env) {
 	th07_replay_header_t *header = (th07_replay_header_t*)rep_raw;
 
 	char ver[5] = "    ";
-	snprintf(ver, 5, "%.2hhx%.2hhx", header->version[0], header->version[1]);
+	snprintf(ver, 4, "%.2hhx%.2hhx", header->version[0], header->version[1]);
 	out.Set("version", ver);
 
 	th06_decrypt(rep_raw + 16, header->key, len - 16);
